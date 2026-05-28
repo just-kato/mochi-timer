@@ -6,6 +6,7 @@ import type { PendingInvite } from '@/lib/types/admin'
 import { SettingsForm } from '@/components/settings/SettingsForm'
 import { InviteForm } from '@/components/admin/InviteForm'
 import { UserList } from '@/components/admin/UserList'
+import { SessionHistoryTab } from '@/components/profile/SessionHistoryTab'
 
 interface ProfileTabsProps {
   email: string
@@ -40,7 +41,7 @@ export function ProfileTabs({
   users,
   pendingInvites,
 }: ProfileTabsProps) {
-  const [activeTab, setActiveTab] = useState<'settings' | 'admin'>('settings')
+  const [activeTab, setActiveTab] = useState<'settings' | 'history' | 'admin'>('settings')
 
   return (
     <div className="border-[3px] border-black dark:border-zinc-700 shadow-brutal dark:bg-zinc-900">
@@ -50,15 +51,26 @@ export function ProfileTabs({
         <button
           type="button"
           onClick={() => setActiveTab('settings')}
-          className={`flex-1 py-3 px-4 text-xs font-bold uppercase tracking-widest transition-none ${
-            isAdmin ? 'border-r-[3px] border-black' : ''
-          } ${
+          className={`flex-1 py-3 px-4 text-xs font-bold uppercase tracking-widest transition-none border-r-[3px] border-black ${
             activeTab === 'settings'
               ? 'bg-black text-brutalist-yellow'
               : 'bg-white dark:bg-zinc-900 text-black dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800'
           }`}
         >
           Settings
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('history')}
+          className={`flex-1 py-3 px-4 text-xs font-bold uppercase tracking-widest transition-none ${
+            isAdmin ? 'border-r-[3px] border-black' : ''
+          } ${
+            activeTab === 'history'
+              ? 'bg-black text-brutalist-yellow'
+              : 'bg-white dark:bg-zinc-900 text-black dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+          }`}
+        >
+          History
         </button>
         {isAdmin && (
           <button
@@ -96,6 +108,9 @@ export function ProfileTabs({
           </div>
         </div>
       )}
+
+      {/* History tab */}
+      {activeTab === 'history' && <SessionHistoryTab />}
 
       {/* Admin tab */}
       {activeTab === 'admin' && isAdmin && (

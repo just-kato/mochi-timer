@@ -5,11 +5,12 @@ import { Pool } from 'pg'
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
 function createPrismaClient(): PrismaClient {
-  // Use DIRECT_URL (port 5432, no pgBouncer) — the pg driver does not
-  // understand the ?pgbouncer=true query param and pgBouncer rejects it.
-  // DATABASE_URL (pooled) is only needed for the Vercel production edge runtime.
-  const connectionString = process.env.DIRECT_URL ?? process.env.DATABASE_URL
-  const pool = new Pool({ connectionString })
+  // Use the pooled DATABASE_URL (pgBouncer on port 6543) — the direct DIRECT_URL
+  // (port 5432) is only reachable from Vercel's network. Strip ?pgbouncer=true
+  // because the pg driver doesn't understand it and pgBouncer rejects the parameter.
+  const rawUrl = process.env.DATABASE_URL
+  const connectionString = rawUrl?.replace(/[?&]pgbouncer=true/gi, '')
+  const pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } })
   const adapter = new PrismaPg(pool)
   return new PrismaClient({
     adapter,

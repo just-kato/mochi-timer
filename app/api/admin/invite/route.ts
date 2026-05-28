@@ -2,7 +2,6 @@
 // Service role bypasses RLS so we can read/write any user's data.
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { prisma } from '@/lib/prisma/client'
 import { logger } from '@/lib/utils/logger'
 
 const MAX_INVITES_PER_HOUR = 10
@@ -27,30 +26,35 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   // Rate limiting: max MAX_INVITES_PER_HOUR invites per admin per hour
-  const adminUser = await prisma.user.findUnique({ where: { id: user.id } })
+  const serviceClient = createServiceClient()
+  const { data: adminUser } = await serviceClient
+    .from('User')
+    .select('inviteCount, inviteWindowStart')
+    .eq('id', user.id)
+    .maybeSingle()
+
   if (adminUser) {
     const now = new Date()
-    const windowStart = adminUser.inviteWindowStart
-    const withinWindow =
-      windowStart && now.getTime() - windowStart.getTime() < 60 * 60 * 1000
+    const rawWindow = (adminUser as { inviteWindowStart: string | null }).inviteWindowStart
+    const windowStart = rawWindow
+      ? new Date(rawWindow.endsWith('Z') || rawWindow.includes('+') ? rawWindow : rawWindow + 'Z')
+      : null
+    const withinWindow = windowStart && now.getTime() - windowStart.getTime() < 60 * 60 * 1000
+    const inviteCount = (adminUser as { inviteCount: number }).inviteCount
 
-    if (withinWindow && adminUser.inviteCount >= MAX_INVITES_PER_HOUR) {
+    if (withinWindow && inviteCount >= MAX_INVITES_PER_HOUR) {
       return NextResponse.json(
         { error: `Rate limit: max ${MAX_INVITES_PER_HOUR} invites per hour` },
         { status: 429 }
       )
     }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        inviteCount: withinWindow ? adminUser.inviteCount + 1 : 1,
-        inviteWindowStart: withinWindow ? windowStart : now,
-      },
-    })
+    await serviceClient.from('User').update({
+      inviteCount: withinWindow ? inviteCount + 1 : 1,
+      inviteWindowStart: withinWindow ? rawWindow : now.toISOString(),
+    }).eq('id', user.id)
   }
 
-  const serviceClient = createServiceClient()
   const { error } = await serviceClient.auth.admin.inviteUserByEmail(email, {
     redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
   })

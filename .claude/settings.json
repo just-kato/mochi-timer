@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir=false --import-alias=\"@/*\" --no-git --yes)",
+      "Read(//private/tmp/**)",
+      "Bash(npx create-next-app@latest mochi-timer-scaffold --typescript --tailwind --eslint --app --src-dir=false --import-alias=\"@/*\" --no-git --yes)",
+      "Bash(cp /tmp/mochi-timer-scaffold/package.json /Users/katohernandez/Projects/mochi-timer/)",
+      "Bash(cp /tmp/mochi-timer-scaffold/package-lock.json /Users/katohernandez/Projects/mochi-timer/)",
+      "Bash(cp /tmp/mochi-timer-scaffold/tsconfig.json /Users/katohernandez/Projects/mochi-timer/)",
+      "Bash(cp /tmp/mochi-timer-scaffold/next.config.ts /Users/katohernandez/Projects/mochi-timer/)",
+      "Bash(cp /tmp/mochi-timer-scaffold/postcss.config.mjs /Users/katohernandez/Projects/mochi-timer/)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(kill %1)",
+      "Bash(wait)",
+      "Bash(openssl rand *)",
+      "Bash(npx prisma *)",
+      "Bash(kill 96823)",
+      "Bash(npx supabase *)",
+      "Bash(PGPASSWORD=Lqm1vWNRFVwhRVEH psql \"postgresql://postgres@db.fumvadxyfmlmjqvuqfaf.supabase.co:5432/postgres\" -f prisma/migrations/rls.sql)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(PGPASSWORD=Lqm1vWNRFVwhRVEH psql \"postgresql://postgres@db.fumvadxyfmlmjqvuqfaf.supabase.co:5432/postgres\" -c '\\\\dt public.*')",
+      "Bash(node -e ' *)",
+      "Bash(PGPASSWORD=Lqm1vWNRFVwhRVEH psql \"postgresql://postgres@db.fumvadxyfmlmjqvuqfaf.supabase.co:5432/postgres\" -c \"SELECT id, email, role, \\\\\"createdAt\\\\\" FROM \\\\\"User\\\\\";\")",
+      "Bash(psql postgresql://postgres@db.fumvadxyfmlmjqvuqfaf.supabase.co:5432/postgres -c ' *)",
+      "Bash(npx tsc *)",
+      "Bash(node -e \"require\\('canvas'\\)\")",
+      "Bash(node -e \"require\\('sharp'\\)\")",
+      "Bash(curl -s \"http://localhost:3000/calendar\" -L -b /tmp/mochi-cookies)",
+      "Bash(npx next *)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ],
+    "additionalDirectories": [
+      "/Users/katohernandez/Projects/mochi-timer",
+      "/Users/katohernandez/Projects/mochi-timer/app/api/sessions/[id]"
+    ]
+  }
+}

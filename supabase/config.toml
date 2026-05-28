@@ -1,0 +1,65 @@
+# supabase/config.toml
+# Supabase CLI project configuration
+# Replace YOUR_PROJECT_REF with your actual project reference ID
+# Found at: supabase.com → your project → Settings → General
+
+[api]
+# Port for the local Supabase API when running `supabase start`
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+# Port for the local Postgres database
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+# Local email testing (for invite emails in dev)
+enabled = true
+port = 54324
+
+[storage]
+enabled = false
+
+[auth]
+# Site URL — must match your app's base URL
+site_url = "http://localhost:3000"
+
+# Allowed redirect URLs after auth (add production URL before deploying)
+additional_redirect_urls = [
+  "http://localhost:3000/auth/callback",
+  "https://your-app.vercel.app/auth/callback"
+]
+
+# JWT expiry in seconds (1 hour)
+jwt_expiry = 3600
+
+# IMPORTANT: Disable public email signup — invite-only app
+# This must also be disabled in the Supabase dashboard for production
+enable_signup = false
+
+# Allow email confirmations (required for invite flow)
+enable_confirmations = true
+
+[auth.email]
+# Enable email provider (magic link + invite)
+enable_signup = false
+double_confirm_changes = true
+enable_confirmations = true
+
+[auth.sms]
+enable_signup = false
+
+# External OAuth providers — all disabled for this app
+[auth.external.github]
+enabled = false
+
+[auth.external.google]
+enabled = false

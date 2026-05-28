@@ -60,10 +60,10 @@ test.describe('Admin panel', () => {
 
     await expect(page.locator(`text=${revokeEmail}`)).toBeVisible()
 
-    // Find the Revoke button next to this user and click it
-    const userRow = page.locator('li').filter({ hasText: revokeEmail })
+    // Navigate from the email <p> up to its grandparent row div, then to the sibling REVOKE button
+    const revokeButton = page.locator(`xpath=//p[text()="${revokeEmail}"]/../../button`)
     page.once('dialog', (dialog) => dialog.accept())
-    await userRow.getByRole('button', { name: 'Revoke' }).click()
+    await revokeButton.click()
 
     // User row disappears from list
     await expect(page.locator(`text=${revokeEmail}`)).not.toBeVisible({ timeout: 5000 })

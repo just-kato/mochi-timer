@@ -52,7 +52,7 @@ test.describe('Export', () => {
   test('PDF downloads with correct data', async ({ page }) => {
     const [download] = await Promise.all([
       page.waitForEvent('download'),
-      page.getByRole('button', { name: 'Export PDF' }).click(),
+      page.getByRole('button', { name: 'Invoice PDF' }).click(),
     ])
 
     expect(download.suggestedFilename()).toMatch(/\.pdf$/)

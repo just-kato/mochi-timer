@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 type Mode = 'magic-link' | 'password'
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [sent, setSent] = useState(false)
 
   const supabase = createClient()
+  const router = useRouter()
 
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault()
@@ -40,6 +42,8 @@ export default function LoginPage() {
     setLoading(false)
     if (error) {
       setError(error.message)
+    } else {
+      router.push('/timer')
     }
   }
 

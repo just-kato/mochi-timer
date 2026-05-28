@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TimerButton } from './TimerButton'
 import { useTimer } from '@/lib/hooks/useTimer'
+import { useOnlineStatus } from '@/lib/hooks/useOnlineStatus'
 import type { LocalSession } from '@/lib/indexeddb/client'
 
 interface ActiveTimerProps {
@@ -14,12 +15,13 @@ interface ActiveTimerProps {
 export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerProps) {
   const [notes, setNotes] = useState('')
   const router = useRouter()
+  const online = useOnlineStatus()
   const { running, elapsed, loading, error, start, stop } = useTimer(initialSession)
 
   async function handleStop() {
     await stop(notes)
     setNotes('')
-    router.refresh()
+    if (online) router.refresh()
   }
 
   return (
@@ -28,6 +30,7 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
         className={`w-full border-[3px] border-black dark:border-zinc-700 flex items-center justify-center py-10 px-6 shadow-brutal ${
           running ? 'bg-brutalist-yellow' : 'bg-white dark:bg-zinc-900'
         }`}
+        role="status"
         aria-live="polite"
         aria-label={`Elapsed time: ${elapsed}`}
       >

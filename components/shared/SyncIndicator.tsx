@@ -1,9 +1,11 @@
 'use client'
 
 import { useOnlineStatus } from '@/lib/hooks/useOnlineStatus'
+import { useSyncOnReconnect } from '@/lib/hooks/useSyncOnReconnect'
 import { useEffect, useState } from 'react'
 
 export function SyncIndicator() {
+  useSyncOnReconnect()
   const online = useOnlineStatus()
   const [justCameOnline, setJustCameOnline] = useState(false)
 

@@ -1,7 +1,6 @@
 // IMPORTANT: Always uses service role client — never anon client.
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { prisma } from '@/lib/prisma/client'
 import { logger } from '@/lib/utils/logger'
 
 export async function POST(
@@ -29,10 +28,8 @@ export async function POST(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Remove from our DB as well
-  await prisma.user.delete({ where: { id } }).catch(() => {
-    // May already be absent — not a hard failure
-  })
+  // Remove from our DB as well (cascade deletes sessions too)
+  await serviceClient.from('User').delete().eq('id', id)
 
   logger.info('User revoked', { id, revokedBy: user.id })
   return NextResponse.json({ success: true })

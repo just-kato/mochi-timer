@@ -8,7 +8,7 @@ export function OfflineIndicator() {
   if (online) return null
 
   return (
-    <div className="w-full bg-brutalist-red border-b-[3px] border-black px-4 py-3 text-center">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-brutalist-red border-t-[3px] border-black px-4 py-3 text-center">
       <span className="text-xs font-bold uppercase tracking-widest text-black">
         OFFLINE — SESSIONS SAVING LOCALLY
       </span>

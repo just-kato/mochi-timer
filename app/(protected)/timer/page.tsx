@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getActiveSession, getSessionsByDay, getRecentNoteSuggestions } from '@/lib/db/sessions'
 import { getUserById } from '@/lib/db/users'
 import { ActiveTimer } from '@/components/timer/ActiveTimer'
-import { SessionList } from '@/components/timer/SessionList'
+import { TodaySessions } from '@/components/timer/TodaySessions'
 import { TimerClock } from '@/components/timer/TimerClock'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { TimerCrashFallback } from '@/components/timer/TimerCrashFallback'
@@ -48,7 +48,7 @@ export default async function TimerPage() {
           <h2 className="text-xs font-bold uppercase tracking-widest mb-4 pb-3 border-b-[3px] border-black">
             {today}
           </h2>
-          <SessionList sessions={todaySessions} />
+          <TodaySessions initialSessions={todaySessions} />
         </section>
       </div>
     </>

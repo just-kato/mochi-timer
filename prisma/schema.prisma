@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  role           String    @default("user")
+  hourlyRate     Float     @default(0)
+  payPeriodStart Int       @default(1)
+  emailSummary   Boolean   @default(true)
+  timezone       String    @default("America/New_York")
+  inviteCount    Int       @default(0)
+  inviteWindowStart DateTime?
+  sessions       Session[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Session {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startTime DateTime
+  endTime   DateTime?
+  duration  Int?
+  notes     String?
+  synced    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([userId, startTime])
+}

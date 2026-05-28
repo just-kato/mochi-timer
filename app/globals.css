@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+/* Enable .dark class-based dark mode for Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: var(--font-space-grotesk), monospace;
+  --font-grotesk: var(--font-space-grotesk), monospace;
+  --font-mono-brutal: var(--font-space-mono), monospace;
+}
+
+@theme {
+  --color-brutalist-yellow: #FFFF00;
+  --color-brutalist-red:    #FF3B00;
+  --color-brutalist-blue:   #0000FF;
+  --color-brutalist-green:  #00FF00;
+  --color-cream:            #FEFEF2;
+
+  --radius:    0rem;
+  --radius-sm: 0rem;
+  --radius-md: 0rem;
+  --radius-lg: 0rem;
+  --radius-xl: 0rem;
+  --radius-2xl: 0rem;
+  --radius-3xl: 0rem;
+  --radius-full: 0rem;
+}
+
+/* CSS variables that flip with the theme */
+:root {
+  --shadow-color: #000000;
+}
+
+.dark {
+  --shadow-color: rgba(255, 255, 255, 0.12);
+  color-scheme: dark;
+}
+
+@layer utilities {
+  .shadow-brutal-sm { box-shadow: 4px 4px 0px var(--shadow-color); }
+  .shadow-brutal    { box-shadow: 6px 6px 0px var(--shadow-color); }
+  .shadow-brutal-lg { box-shadow: 8px 8px 0px var(--shadow-color); }
+}
+
+* {
+  box-sizing: border-box;
+  border-radius: 0 !important;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+button,
+a,
+[role='button'] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.btn-brutal {
+  transition: transform 80ms ease-out, box-shadow 80ms ease-out;
+}
+
+.btn-brutal:hover:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px var(--shadow-color);
+}
+
+.btn-brutal:active:not(:disabled) {
+  transform: translate(4px, 4px);
+  box-shadow: 0px 0px 0px var(--shadow-color);
+}
+
+.btn-brutal:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── DARK MODE GLOBAL OVERRIDES ──────────────────────────────────────────────
+   Written outside @layer so they win over Tailwind utility classes.
+   Scoped to form elements only — card/surface bg handled per-component
+   with dark: variants to avoid edge cases with intentionally-dark elements.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark textarea,
+.dark select {
+  background-color: rgb(24 24 27);
+  color: rgb(244 244 245);
+}
+
+.dark input:not([type="checkbox"]):not([type="radio"]):focus,
+.dark textarea:focus {
+  background-color: #FFFF00;
+  color: #000000;
+}
+
+/* Select focus uses yellow too */
+.dark select:focus {
+  background-color: rgb(24 24 27);
+  color: rgb(244 244 245);
+}

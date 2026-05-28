@@ -34,12 +34,12 @@ test.describe('Settings', () => {
 
   test('hourly rate saves and reflects in stats', async ({ page }) => {
     await page.locator('#hourlyRate').fill('75')
-    await page.getByRole('button', { name: 'Save settings' }).click()
-    await expect(page.locator('text=Settings saved')).toBeVisible()
+    await page.getByRole('button', { name: 'SAVE SETTINGS' }).click()
+    await expect(page.locator('text=SETTINGS SAVED')).toBeVisible()
 
     // Navigate to stats and verify pay = 2h × $75 = $150
     await page.goto('/stats')
-    await expect(page.locator('text=$150.00')).toBeVisible()
+    await expect(page.locator('text=Est. $150.00').first()).toBeVisible()
   })
 
   test('pay period start day updates and persists', async ({ page }) => {

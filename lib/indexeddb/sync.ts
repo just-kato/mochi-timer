@@ -7,20 +7,23 @@ import {
 import { logger } from '@/lib/utils/logger'
 
 export async function syncPendingSessions(): Promise<void> {
-  const pending = await getUnsyncedSessions()
-  if (pending.length === 0) return
+  const [pending, active] = await Promise.all([
+    getUnsyncedSessions(),
+    getActiveSession(),
+  ])
+
+  const hasWork = pending.length > 0 || (active && !active.synced)
+  if (!hasWork) return
 
   for (const session of pending) {
     try {
       if (!session.endTime) {
-        // Active session — ensure it exists on server (upsert via POST, idempotent)
         await fetch('/api/sessions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: session.id, startTime: session.startTime }),
         })
       } else {
-        // Stopped session — upsert via sync endpoint
         await fetch('/api/sessions/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -40,9 +43,17 @@ export async function syncPendingSessions(): Promise<void> {
     }
   }
 
-  // Re-sync active session's synced flag in IndexedDB
-  const active = await getActiveSession()
   if (active && !active.synced) {
-    await saveActiveSession({ ...active, synced: true })
+    try {
+      await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: active.id, startTime: active.startTime }),
+      })
+      await saveActiveSession({ ...active, synced: true })
+      logger.info('Active session synced', { id: active.id })
+    } catch (err) {
+      logger.warn('Active session sync failed', { id: active.id, error: String(err) })
+    }
   }
 }

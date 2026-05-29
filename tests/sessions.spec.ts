@@ -175,7 +175,7 @@ test.describe('Sessions — edit, delete, history', () => {
     await expect(page.locator(`text=edit-test`)).toBeVisible()
 
     // Click Edit on the session
-    const editBtn = page.locator('li').filter({ hasText: 'edit-test' }).getByRole('button', { name: 'Edit' })
+    const editBtn = page.locator('li').filter({ hasText: 'edit-test' }).getByRole('button', { name: 'Edit session' })
     await editBtn.click()
 
     // Change start time to 1 hour later (reducing duration by 1h)
@@ -193,7 +193,7 @@ test.describe('Sessions — edit, delete, history', () => {
     await page.getByRole('button', { name: 'Save' }).click()
 
     // Modal should close and duration should update to 1:00:00
-    await expect(page.locator('[aria-label="Edit session"]')).not.toBeVisible()
+    await expect(page.getByRole('dialog', { name: 'Edit session' })).not.toBeVisible()
     await expect(page.locator('li').filter({ hasText: 'edit-test' }).getByText('01:00:00')).toBeVisible()
 
     // Cleanup
@@ -212,7 +212,7 @@ test.describe('Sessions — edit, delete, history', () => {
     await page.goto('/timer')
     await expect(page.locator('text=delete-me')).toBeVisible()
 
-    const delBtn = page.locator('li').filter({ hasText: 'delete-me' }).getByRole('button', { name: 'Delete' })
+    const delBtn = page.locator('li').filter({ hasText: 'delete-me' }).getByRole('button', { name: 'Delete session' })
     await delBtn.click()
 
     const confirmBtn = page.locator('li').filter({ hasText: 'delete-me' }).getByRole('button', { name: 'Confirm' })
@@ -233,13 +233,13 @@ test.describe('Sessions — edit, delete, history', () => {
     await page.goto('/timer')
     await expect(page.locator('text=cancel-test')).toBeVisible()
 
-    const editBtn = page.locator('li').filter({ hasText: 'cancel-test' }).getByRole('button', { name: 'Edit' })
+    const editBtn = page.locator('li').filter({ hasText: 'cancel-test' }).getByRole('button', { name: 'Edit session' })
     await editBtn.click()
-    await expect(page.locator('[aria-label="Edit session"]')).toBeVisible()
+    await expect(page.getByRole('dialog', { name: 'Edit session' })).toBeVisible()
 
     // Change something but cancel
     await page.getByRole('button', { name: 'Cancel' }).click()
-    await expect(page.locator('[aria-label="Edit session"]')).not.toBeVisible()
+    await expect(page.getByRole('dialog', { name: 'Edit session' })).not.toBeVisible()
 
     // Original duration still shown (1:00:00)
     await expect(page.locator('li').filter({ hasText: 'cancel-test' }).getByText('01:00:00')).toBeVisible()

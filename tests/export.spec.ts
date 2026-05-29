@@ -61,15 +61,16 @@ test.describe('Export', () => {
   })
 
   test('date range filter works correctly', async ({ page }) => {
-    // Set a range that excludes our session (future dates only)
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const dayAfter = new Date(tomorrow)
-    dayAfter.setDate(tomorrow.getDate() + 1)
+    // Use a range 5–4 days ago: clearly before our 2-day-old test session,
+    // no sessions exist in that range, and both dates are within max={today}
+    const start = new Date()
+    start.setDate(start.getDate() - 5)
+    const end = new Date()
+    end.setDate(end.getDate() - 4)
 
     const fmt = (d: Date) => d.toISOString().split('T')[0]
-    await page.locator('input[type="date"]').nth(0).fill(fmt(tomorrow))
-    await page.locator('input[type="date"]').nth(1).fill(fmt(dayAfter))
+    await page.locator('input[type="date"]').nth(0).fill(fmt(start))
+    await page.locator('input[type="date"]').nth(1).fill(fmt(end))
 
     const [download] = await Promise.all([
       page.waitForEvent('download'),

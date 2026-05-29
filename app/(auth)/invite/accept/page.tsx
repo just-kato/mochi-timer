@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -38,13 +39,24 @@ export default function InviteAcceptPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-white dark:bg-zinc-950">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-cream dark:bg-zinc-950">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold uppercase tracking-tighter">Welcome</h1>
-          <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mt-2">
-            Set a password to finish signing in
-          </p>
+        <div className="flex flex-col items-start gap-3 mb-8">
+          <Image
+            src="/mr.mochi logo black.png"
+            alt="Mochi Timer"
+            width={100}
+            height={100}
+            className="object-contain dark:invert"
+          />
+          <div>
+            <h1 className="text-4xl font-bold uppercase tracking-tight leading-none dark:text-white">
+              MOCHI<br />TIMER
+            </h1>
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mt-2">
+              SET A PASSWORD TO FINISH SIGNING IN
+            </p>
+          </div>
         </div>
 
         <div className="border-[3px] border-black dark:border-zinc-700 shadow-brutal">

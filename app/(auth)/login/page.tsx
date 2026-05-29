@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -83,7 +84,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-cream dark:bg-zinc-950">
       <div className="w-full max-w-sm">
-        <div className="flex flex-col items-start gap-3 mb-1">
+        <div className="flex flex-col items-center gap-3 mb-1">
           <Image
             src="/mr.mochi logo black.png"
             alt="Mochi Timer"
@@ -91,11 +92,11 @@ export default function LoginPage() {
             height={100}
             className="object-contain dark:invert"
           />
-          <h1 className="text-5xl font-bold uppercase tracking-tight leading-none dark:text-white">
+          <h1 className="text-5xl font-bold uppercase tracking-tight leading-none text-center dark:text-white">
             MOCHI<br />TIMER
           </h1>
         </div>
-        <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-8 mt-1">
+        <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-8 mt-1 text-center">
           SIGN IN TO YOUR ACCOUNT
         </p>
 
@@ -154,6 +155,9 @@ export default function LoginPage() {
                 className="w-full border-[3px] border-black dark:border-zinc-600 px-3 py-3 text-sm focus:outline-none focus:bg-brutalist-yellow focus:text-black"
                 placeholder="••••••••"
               />
+              <Link href="/forgot-password" className="inline-block mt-2 text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-black dark:hover:text-zinc-100 underline min-h-0 min-w-0">
+                FORGOT PASSWORD?
+              </Link>
             </div>
           )}
 

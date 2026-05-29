@@ -40,5 +40,10 @@ export async function GET(request: Request): Promise<NextResponse> {
     return NextResponse.redirect(`${origin}/invite/accept`)
   }
 
+  // Password reset — send to the reset page while session is active
+  if (type === 'recovery') {
+    return NextResponse.redirect(`${origin}/reset-password`)
+  }
+
   return NextResponse.redirect(`${origin}${next}`)
 }

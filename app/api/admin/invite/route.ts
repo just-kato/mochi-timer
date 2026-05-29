@@ -57,7 +57,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const { error } = await serviceClient.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${getAppUrl(request)}/auth/callback?type=invite`,
+    redirectTo: `${getAppUrl(request)}/login`,
   })
 
   if (error) {

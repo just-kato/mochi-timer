@@ -2,22 +2,55 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 type Mode = 'magic-link' | 'password'
 
 export default function LoginPage() {
+  // Detect implicit-flow tokens in the URL hash at render time (lazy initializer).
+  // Invite and reset emails land here as /login#access_token=...&type=invite|recovery
+  const [hashAuth] = useState<{ accessToken: string; refreshToken: string; type: string | null } | null>(() => {
+    if (typeof window === 'undefined') return null
+    const params = new URLSearchParams(window.location.hash.slice(1))
+    const accessToken = params.get('access_token')
+    const refreshToken = params.get('refresh_token')
+    if (!accessToken || !refreshToken) return null
+    return { accessToken, refreshToken, type: params.get('type') }
+  })
+
   const [mode, setMode] = useState<Mode>('password')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [redirecting, setRedirecting] = useState(!!hashAuth)
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
 
   const supabase = createClient()
   const router = useRouter()
+
+  useEffect(() => {
+    if (!hashAuth) return
+    window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    supabase.auth.setSession({ access_token: hashAuth.accessToken, refresh_token: hashAuth.refreshToken })
+      .then(({ error: sessionError }) => {
+        if (sessionError) {
+          setError('This link has expired or already been used. Please request a new one.')
+          setRedirecting(false)
+          return
+        }
+        if (hashAuth.type === 'invite') {
+          router.replace('/invite/accept')
+        } else if (hashAuth.type === 'recovery') {
+          router.replace('/reset-password')
+        } else {
+          router.replace('/timer')
+        }
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault()
@@ -46,6 +79,30 @@ export default function LoginPage() {
     } else {
       router.push('/timer')
     }
+  }
+
+  if (redirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 bg-cream dark:bg-zinc-950">
+        <div className="w-full max-w-sm text-center">
+          <Image
+            src="/mr.mochi logo black.png"
+            alt="Mochi Timer"
+            width={80}
+            height={80}
+            className="object-contain mx-auto mb-6 dark:invert"
+          />
+          <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+            SIGNING YOU IN…
+          </p>
+          {error && (
+            <div className="mt-6 border-[3px] border-black bg-brutalist-red px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-widest text-black">{error}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    )
   }
 
   if (sent) {

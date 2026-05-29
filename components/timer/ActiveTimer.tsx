@@ -16,7 +16,7 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
   const [notes, setNotes] = useState('')
   const router = useRouter()
   const online = useOnlineStatus()
-  const { running, elapsed, loading, error, start, stop } = useTimer(initialSession)
+  const { running, paused, elapsed, loading, error, start, stop, pause, resume } = useTimer(initialSession)
 
   async function handleStop() {
     await stop(notes)
@@ -27,25 +27,37 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
   return (
     <div className="flex flex-col items-center gap-8">
       <div
-        className={`w-full border-[3px] border-black dark:border-zinc-700 flex items-center justify-center py-10 px-6 shadow-brutal ${
-          running ? 'bg-brutalist-yellow' : 'bg-white dark:bg-zinc-900'
+        className={`w-full border-[3px] flex flex-col items-center justify-center py-10 px-6 shadow-brutal transition-colors ${
+          running && !paused
+            ? 'border-black dark:border-black bg-brutalist-yellow'
+            : running && paused
+            ? 'border-black dark:border-zinc-700 bg-white dark:bg-zinc-900'
+            : 'border-black dark:border-zinc-700 bg-white dark:bg-zinc-900'
         }`}
         role="status"
         aria-live="polite"
         aria-label={`Elapsed time: ${elapsed}`}
       >
         <span className={`text-7xl font-mono-brutal font-bold tabular-nums tracking-tight ${
-          running ? 'text-black' : 'dark:text-zinc-100'
+          running && !paused ? 'text-black' : 'dark:text-zinc-100'
         }`}>
           {elapsed}
         </span>
+        {paused && (
+          <span className="mt-3 text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 border-2 border-zinc-300 dark:border-zinc-600 px-3 py-1">
+            PAUSED
+          </span>
+        )}
       </div>
 
       <TimerButton
         running={running}
+        paused={paused}
         loading={loading}
         onStart={start}
         onStop={handleStop}
+        onPause={pause}
+        onResume={resume}
       />
 
       {running && (

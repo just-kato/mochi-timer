@@ -35,10 +35,20 @@ export function TodaySessions({ initialSessions, timezone = 'America/New_York' }
   const todayInTz = getTodayInTz(timezone)
   const [selectedDate, setSelectedDate] = useState(todayInTz)
   const [sessions, setSessions] = useState<Session[]>(initialSessions)
+  const [prevInitialSessions, setPrevInitialSessions] = useState(initialSessions)
   const [loading, setLoading] = useState(false)
   const [editingSession, setEditingSession] = useState<Session | null>(null)
   const [addingSession, setAddingSession] = useState(false)
   const isToday = selectedDate === todayInTz
+
+  // Sync sessions when server pushes new data (e.g. after router.refresh() following stop/delete).
+  // React's recommended pattern: update state during render rather than in an effect.
+  if (prevInitialSessions !== initialSessions) {
+    setPrevInitialSessions(initialSessions)
+    if (selectedDate === todayInTz) {
+      setSessions(initialSessions)
+    }
+  }
 
   // Auto-clear at midnight in user's timezone
   useEffect(() => {

@@ -166,11 +166,10 @@ test.describe('Sessions — edit, delete, history', () => {
   test('timer page — edit session updates displayed duration', async ({ page }) => {
     await signInAsUser(page, EMAIL, PASSWORD)
 
-    // Create a fresh session for today that will appear in the timer page list
-    const todayStart = new Date()
-    todayStart.setHours(8, 0, 0, 0)
-    const todayEnd = new Date()
-    todayEnd.setHours(10, 0, 0, 0)
+    // Use relative times so the session always falls within "today" regardless of server timezone
+    const now = new Date()
+    const todayEnd = new Date(now.getTime() - 60 * 1000)       // 1 min ago
+    const todayStart = new Date(now.getTime() - 2 * 3600 * 1000 - 60 * 1000) // 2h+1min ago
     const freshId = await createTestSession(userId, todayStart, todayEnd, 'edit-test')
 
     await page.goto('/timer')
@@ -180,9 +179,8 @@ test.describe('Sessions — edit, delete, history', () => {
     const editBtn = page.locator('li').filter({ hasText: 'edit-test' }).getByRole('button', { name: 'Edit session' })
     await editBtn.click()
 
-    // Change start time to 1 hour later (reducing duration by 1h)
-    const newStart = new Date(todayStart)
-    newStart.setHours(9, 0, 0, 0)
+    // Change start time to 1 hour later (reducing duration to ~1h)
+    const newStart = new Date(todayStart.getTime() + 3600 * 1000)
     const fmt = (d: Date) => {
       const y = d.getFullYear()
       const mo = String(d.getMonth() + 1).padStart(2, '0')
@@ -205,10 +203,9 @@ test.describe('Sessions — edit, delete, history', () => {
   test('timer page — delete session removes it from list', async ({ page }) => {
     await signInAsUser(page, EMAIL, PASSWORD)
 
-    const todayStart = new Date()
-    todayStart.setHours(7, 0, 0, 0)
-    const todayEnd = new Date()
-    todayEnd.setHours(8, 0, 0, 0)
+    const now = new Date()
+    const todayEnd = new Date(now.getTime() - 5 * 60 * 1000)    // 5 min ago
+    const todayStart = new Date(now.getTime() - 65 * 60 * 1000) // 65 min ago
     await createTestSession(userId, todayStart, todayEnd, 'delete-me')
 
     await page.goto('/timer')

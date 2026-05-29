@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-export default function InviteAcceptPage() {
+export default function ResetPasswordPage() {
   const router = useRouter()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -32,7 +32,7 @@ export default function InviteAcceptPage() {
       if (updateError) throw new Error(updateError.message)
       router.push('/timer')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to set password')
+      setError(err instanceof Error ? err.message : 'Failed to update password')
     } finally {
       setLoading(false)
     }
@@ -42,19 +42,13 @@ export default function InviteAcceptPage() {
     <div className="min-h-screen flex items-center justify-center px-4 bg-cream dark:bg-zinc-950">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center gap-3 mb-8">
-          <Image
-            src="/mr.mochi logo black.png"
-            alt="Mochi Timer"
-            width={100}
-            height={100}
-            className="object-contain dark:invert"
-          />
+          <Image src="/mr.mochi logo black.png" alt="Mochi Timer" width={100} height={100} className="object-contain dark:invert" />
           <div className="text-center">
             <h1 className="text-4xl font-bold uppercase tracking-tight leading-none dark:text-white">
               MOCHI<br />TIMER
             </h1>
             <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mt-2">
-              SET A PASSWORD TO FINISH SIGNING IN
+              CHOOSE A NEW PASSWORD
             </p>
           </div>
         </div>
@@ -63,7 +57,7 @@ export default function InviteAcceptPage() {
           <form onSubmit={handleSubmit} className="px-6 py-6 space-y-5">
             <div>
               <label htmlFor="new-password" className="block text-xs font-bold uppercase tracking-widest mb-2 dark:text-zinc-100">
-                Password
+                New Password
               </label>
               <input
                 id="new-password"
@@ -104,7 +98,7 @@ export default function InviteAcceptPage() {
               disabled={loading}
               className="w-full py-4 text-xs font-bold uppercase tracking-widest border-[3px] border-black bg-brutalist-yellow text-black disabled:opacity-50"
             >
-              {loading ? 'Setting password…' : 'Set password & sign in'}
+              {loading ? 'Updating…' : 'Update Password'}
             </button>
           </form>
         </div>

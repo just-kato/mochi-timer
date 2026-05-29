@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/utils/logger'
+import { getAppUrl } from '@/lib/utils/appUrl'
 
 const MAX_INVITES_PER_HOUR = 10
 
@@ -56,7 +57,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const { error } = await serviceClient.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+    redirectTo: `${getAppUrl(request)}/auth/callback`,
   })
 
   if (error) {

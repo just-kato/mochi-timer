@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { createTestUser, deleteTestUser, getServiceClient } from './fixtures/helpers'
+import { createTestUser, deleteTestUser } from './fixtures/helpers'
 
 const TEST_EMAIL = 'test-auth-user@mochi-test.dev'
 const ADMIN_EMAIL = 'test-auth-admin@mochi-test.dev'
@@ -48,18 +48,16 @@ test.describe('Auth', () => {
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL('/timer')
 
-    // Navigate to profile → Admin tab
-    const inviteEmail = `invite-${Date.now()}@mochi-test.dev`
+    // Mock the invite API — no real Supabase user created, no email sent
+    const inviteEmail = 'invite-mock@mochi-test.dev'
+    await page.route('/api/admin/invite', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) })
+    })
+
     await page.goto('/profile')
     await page.getByRole('button', { name: 'Admin' }).click()
     await page.getByLabel('Invite by email').fill(inviteEmail)
     await page.getByRole('button', { name: 'Send invite' }).click()
     await expect(page.getByText(new RegExp(`invite sent to ${inviteEmail}`, 'i'))).toBeVisible()
-
-    // Cleanup
-    const supabase = getServiceClient()
-    const { data } = await supabase.auth.admin.listUsers()
-    const newUser = data.users.find((u) => u.email === inviteEmail)
-    if (newUser) await supabase.auth.admin.deleteUser(newUser.id)
   })
 })

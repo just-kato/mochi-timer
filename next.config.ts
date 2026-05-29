@@ -5,7 +5,6 @@ const pwaConfig = withPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  cleanupOutdatedCaches: true,
   disable: process.env.NODE_ENV === 'development',
   runtimeCaching: [
     {

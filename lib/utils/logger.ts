@@ -8,6 +8,7 @@ interface LogEntry {
 
 function log(level: LogLevel, message: string, context?: Record<string, unknown>): void {
   if (process.env.NODE_ENV === 'production') return
+  if (level === 'info' && !process.env.DEBUG) return
   const entry: LogEntry = { level, message, ...(context ? { context } : {}) }
   if (level === 'error') console.error(JSON.stringify(entry))
   else if (level === 'warn') console.warn(JSON.stringify(entry))

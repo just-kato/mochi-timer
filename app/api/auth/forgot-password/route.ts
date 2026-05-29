@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { getAppUrl } from '@/lib/utils/appUrl'
 
 export async function POST(request: Request): Promise<NextResponse> {
   let email: string
@@ -24,7 +25,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (user) {
     const supabase = await createClient()
     await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?type=recovery`,
+      redirectTo: `${getAppUrl(request)}/auth/callback?type=recovery`,
     })
   }
 

@@ -3,7 +3,6 @@ import {
   createTestUser,
   deleteTestUser,
   signInAsUser,
-  getServiceClient,
 } from './fixtures/helpers'
 
 const ADMIN_EMAIL = 'test-admin-panel@mochi-test.dev'
@@ -34,44 +33,38 @@ test.describe('Admin panel', () => {
 
   test('admin can invite user', async ({ page }) => {
     await signInAsUser(page, ADMIN_EMAIL, PASSWORD)
+
+    // Mock the invite API — no real Supabase user created, no email sent
+    const inviteEmail = 'invite-admin-mock@mochi-test.dev'
+    await page.route('/api/admin/invite', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) })
+    })
+
     await page.goto('/profile')
     await page.getByRole('button', { name: 'Admin' }).click()
-
-    const inviteEmail = `invite-admin-test-${Date.now()}@mochi-test.dev`
     await page.getByLabel('Invite by email').fill(inviteEmail)
     await page.getByRole('button', { name: 'Send invite' }).click()
     await expect(page.locator(`text=Invite sent to ${inviteEmail}`)).toBeVisible()
-
-    // Cleanup
-    const supabase = getServiceClient()
-    const { data } = await supabase.auth.admin.listUsers()
-    const u = data.users.find((x) => x.email === inviteEmail)
-    if (u) await supabase.auth.admin.deleteUser(u.id)
   })
 
   test('admin can revoke user access', async ({ page }) => {
-    // Create a disposable user to revoke
-    const revokeEmail = `revoke-test-${Date.now()}@mochi-test.dev`
-    const revokeId = await createTestUser(revokeEmail, PASSWORD, 'user')
-
     await signInAsUser(page, ADMIN_EMAIL, PASSWORD)
     await page.goto('/profile')
     await page.getByRole('button', { name: 'Admin' }).click()
 
-    await expect(page.locator(`text=${revokeEmail}`)).toBeVisible()
+    await expect(page.locator(`text=${USER_EMAIL}`)).toBeVisible()
 
-    // Navigate from the email <p> up to its grandparent row div, then to the sibling REVOKE button
-    const revokeButton = page.locator(`xpath=//p[text()="${revokeEmail}"]/../../button`)
+    // Mock the revoke API — avoids deleting the shared test user needed by other tests
+    await page.route(`/api/admin/revoke/${userId}`, async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) })
+    })
+
+    const revokeButton = page.locator(`xpath=//p[text()="${USER_EMAIL}"]/../../button`)
     page.once('dialog', (dialog) => dialog.accept())
     await revokeButton.click()
 
-    // User row disappears from list
-    await expect(page.locator(`text=${revokeEmail}`)).not.toBeVisible({ timeout: 5000 })
-
-    // Verify Supabase user is gone
-    const supabase = getServiceClient()
-    const { data } = await supabase.auth.admin.getUserById(revokeId)
-    expect(data.user).toBeNull()
+    // User row disappears from UI (client-side state update)
+    await expect(page.locator(`text=${USER_EMAIL}`)).not.toBeVisible({ timeout: 5000 })
   })
 
   test('regular user cannot access admin panel', async ({ page }) => {

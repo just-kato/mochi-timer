@@ -155,7 +155,9 @@ test.describe('Sessions — edit, delete, history', () => {
     await page.getByRole('button', { name: 'History' }).click()
     await expect(page.locator('li').first()).toBeVisible()
 
+    const responsePromise = page.waitForResponse(r => r.url().includes('/api/sessions/history?page=2'))
     await page.getByRole('button', { name: 'Next →' }).click()
+    await responsePromise
     await expect(page.getByText('2 / ')).toBeVisible()
     const items = page.locator('li')
     await expect(items.first()).toBeVisible()
@@ -190,7 +192,7 @@ test.describe('Sessions — edit, delete, history', () => {
       return `${y}-${mo}-${dy}T${h}:${mi}`
     }
     await page.locator('#edit-start').fill(fmt(newStart))
-    await page.getByRole('button', { name: 'Save' }).click()
+    await page.getByRole('dialog', { name: 'Edit session' }).getByRole('button', { name: 'Save' }).click()
 
     // Modal should close and duration should update to 1:00:00
     await expect(page.getByRole('dialog', { name: 'Edit session' })).not.toBeVisible()
@@ -238,7 +240,7 @@ test.describe('Sessions — edit, delete, history', () => {
     await expect(page.getByRole('dialog', { name: 'Edit session' })).toBeVisible()
 
     // Change something but cancel
-    await page.getByRole('button', { name: 'Cancel' }).click()
+    await page.getByRole('dialog', { name: 'Edit session' }).getByRole('button', { name: 'Cancel' }).click()
     await expect(page.getByRole('dialog', { name: 'Edit session' })).not.toBeVisible()
 
     // Original duration still shown (1:00:00)

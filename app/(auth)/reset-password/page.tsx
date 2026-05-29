@@ -1,16 +1,24 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
+  const [email, setEmail] = useState<string | null>(null)
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user?.email) setEmail(data.user.email)
+    })
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -55,6 +63,15 @@ export default function ResetPasswordPage() {
 
         <div className="border-[3px] border-black dark:border-zinc-700 shadow-brutal">
           <form onSubmit={handleSubmit} className="px-6 py-6 space-y-5">
+            {email && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest mb-1 dark:text-zinc-400">
+                  Account
+                </p>
+                <p className="text-sm font-bold dark:text-zinc-100 truncate">{email}</p>
+              </div>
+            )}
+
             <div>
               <label htmlFor="new-password" className="block text-xs font-bold uppercase tracking-widest mb-2 dark:text-zinc-100">
                 New Password

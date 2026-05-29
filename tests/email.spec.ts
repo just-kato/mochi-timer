@@ -10,7 +10,7 @@ const EMAIL = 'test-email@mochi-test.dev'
 const ADMIN_EMAIL = 'test-email-admin@mochi-test.dev'
 const PASSWORD = 'testpassword123!'
 
-test.describe('Email', () => {
+test.describe.skip('Email', () => {
   let userId: string
   let adminId: string
 

@@ -1,6 +1,6 @@
 import type { Session } from '@prisma/client'
 import { createServiceClient } from '@/lib/supabase/server'
-import { durationSeconds } from '@/lib/utils/time'
+import { durationSeconds, dayBoundsInTimezone } from '@/lib/utils/time'
 
 interface SupabaseSessionRow {
   id: string
@@ -66,6 +66,11 @@ export async function getSessionsByDay(userId: string, date: Date): Promise<Sess
   start.setHours(0, 0, 0, 0)
   const end = new Date(date)
   end.setHours(23, 59, 59, 999)
+  return getSessionsByDateRange(userId, start, end)
+}
+
+export async function getSessionsByDayInTz(userId: string, dateStr: string, timezone: string): Promise<Session[]> {
+  const { start, end } = dayBoundsInTimezone(dateStr, timezone)
   return getSessionsByDateRange(userId, start, end)
 }
 

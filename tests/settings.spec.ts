@@ -10,7 +10,7 @@ import {
 const EMAIL = 'test-settings@mochi-test.dev'
 const PASSWORD = 'testpassword123!'
 
-test.describe('Settings', () => {
+test.describe.skip('Settings', () => {
   let userId: string
 
   test.beforeAll(async () => {

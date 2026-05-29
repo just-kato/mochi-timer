@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useOnlineStatus } from './useOnlineStatus'
-import { openDB, saveActiveSession, clearActiveSession } from '@/lib/indexeddb/client'
+import { openDB, saveActiveSession, saveSession, clearActiveSession } from '@/lib/indexeddb/client'
 import { secondsToDisplay } from '@/lib/utils/time'
 import type { LocalSession } from '@/lib/indexeddb/client'
 
@@ -70,6 +70,8 @@ export function useTimer(initialSession: LocalSession | null = null) {
     setState((s) => ({ ...s, loading: true, error: null }))
     const endTime = new Date()
 
+    const duration = Math.floor((endTime.getTime() - state.startTime.getTime()) / 1000)
+
     if (online) {
       try {
         const res = await fetch(`/api/sessions/${state.sessionId}/stop`, {
@@ -86,6 +88,15 @@ export function useTimer(initialSession: LocalSession | null = null) {
         }))
         return
       }
+    } else {
+      await saveSession({
+        id: state.sessionId,
+        startTime: state.startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        duration,
+        notes: notes?.trim() ?? undefined,
+        synced: false,
+      })
     }
 
     await clearActiveSession()

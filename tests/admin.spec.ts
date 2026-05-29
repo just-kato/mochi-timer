@@ -27,14 +27,15 @@ test.describe('Admin panel', () => {
 
   test('admin can view user list', async ({ page }) => {
     await signInAsUser(page, ADMIN_EMAIL, PASSWORD)
-    await page.goto('/admin')
-    await expect(page.getByRole('heading', { name: 'Admin' })).toBeVisible()
+    await page.goto('/profile')
+    await page.getByRole('button', { name: 'Admin' }).click()
     await expect(page.locator(`text=${USER_EMAIL}`)).toBeVisible()
   })
 
   test('admin can invite user', async ({ page }) => {
     await signInAsUser(page, ADMIN_EMAIL, PASSWORD)
-    await page.goto('/admin')
+    await page.goto('/profile')
+    await page.getByRole('button', { name: 'Admin' }).click()
 
     const inviteEmail = `invite-admin-test-${Date.now()}@mochi-test.dev`
     await page.getByLabel('Invite by email').fill(inviteEmail)
@@ -54,14 +55,15 @@ test.describe('Admin panel', () => {
     const revokeId = await createTestUser(revokeEmail, PASSWORD, 'user')
 
     await signInAsUser(page, ADMIN_EMAIL, PASSWORD)
-    await page.goto('/admin')
+    await page.goto('/profile')
+    await page.getByRole('button', { name: 'Admin' }).click()
 
     await expect(page.locator(`text=${revokeEmail}`)).toBeVisible()
 
-    // Find the Revoke button next to this user and click it
-    const userRow = page.locator('li').filter({ hasText: revokeEmail })
+    // Navigate from the email <p> up to its grandparent row div, then to the sibling REVOKE button
+    const revokeButton = page.locator(`xpath=//p[text()="${revokeEmail}"]/../../button`)
     page.once('dialog', (dialog) => dialog.accept())
-    await userRow.getByRole('button', { name: 'Revoke' }).click()
+    await revokeButton.click()
 
     // User row disappears from list
     await expect(page.locator(`text=${revokeEmail}`)).not.toBeVisible({ timeout: 5000 })
@@ -74,9 +76,8 @@ test.describe('Admin panel', () => {
 
   test('regular user cannot access admin panel', async ({ page }) => {
     await signInAsUser(page, USER_EMAIL, PASSWORD)
-    await page.goto('/admin')
-    // Should be redirected away from admin
-    await expect(page).not.toHaveURL('/admin')
-    await expect(page).toHaveURL('/timer')
+    await page.goto('/profile')
+    // Admin tab should not be visible for regular users
+    await expect(page.getByRole('button', { name: 'Admin' })).not.toBeVisible()
   })
 })

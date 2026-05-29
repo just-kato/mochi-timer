@@ -11,15 +11,16 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const now = new Date()
-  // Get the most recently completed week (Mon–Sun)
-  const dayOfWeek = now.getDay() // 0=Sun
-  // If triggered on Sunday night, the "week" is Mon–Sun of this week
-  const weekEnd = new Date(now)
-  weekEnd.setDate(now.getDate() - dayOfWeek) // back to Sunday
-  weekEnd.setHours(23, 59, 59, 999)
-  const weekStart = new Date(weekEnd)
-  weekStart.setDate(weekEnd.getDate() - 6) // back to Monday
+  // Always use current week: Monday 00:00:00 through today 23:59:59
+  // On the scheduled Sunday cron this is the full Mon–Sun week;
+  // on manual admin triggers it includes sessions logged so far this week.
+  const dayOfWeek = now.getDay() // 0=Sun, 1=Mon, ...
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+  const weekStart = new Date(now)
+  weekStart.setDate(now.getDate() - daysFromMonday)
   weekStart.setHours(0, 0, 0, 0)
+  const weekEnd = new Date(now)
+  weekEnd.setHours(23, 59, 59, 999)
 
   try {
     await sendWeeklySummaryToAll(weekStart, weekEnd)

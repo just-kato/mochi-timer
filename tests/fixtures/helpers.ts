@@ -7,6 +7,7 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 export function getServiceClient() {
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    realtime: { transport: (() => {}) as never },
   })
 }
 
@@ -30,6 +31,21 @@ export async function createTestUser(
   role: 'admin' | 'user' = 'user'
 ): Promise<string> {
   const supabase = getServiceClient()
+
+  // Clean up any stale Prisma User rows for this email (leftover from aborted runs)
+  await supabase.from('Session').delete().in(
+    'userId',
+    (await supabase.from('User').select('id').eq('email', email)).data?.map((r: { id: string }) => r.id) ?? []
+  )
+  await supabase.from('User').delete().eq('email', email)
+
+  // If the auth user already exists, delete and recreate to get a clean state
+  const { data: existing } = await supabase.auth.admin.listUsers()
+  const found = existing?.users?.find((u) => u.email === email)
+  if (found) {
+    await supabase.auth.admin.deleteUser(found.id)
+  }
+
   const { data, error } = await supabase.auth.admin.createUser({
     email,
     password,
@@ -37,11 +53,32 @@ export async function createTestUser(
     user_metadata: { role },
   })
   if (error) throw new Error(`createTestUser failed: ${error.message}`)
+
+  // Create the Prisma User row so FK constraints work without needing a browser login
+  const now = new Date().toISOString()
+  const { error: rowError } = await supabase.from('User').insert({
+    id: data.user.id,
+    email,
+    role,
+    hourlyRate: 50,
+    payPeriodStart: 1,
+    emailSummary: false,
+    timezone: 'America/New_York',
+    inviteCount: 0,
+    createdAt: now,
+    updatedAt: now,
+  })
+  if (rowError) throw new Error(`createTestUser row failed: ${rowError.message}`)
+
   return data.user.id
 }
 
 export async function deleteTestUser(id: string): Promise<void> {
+  if (!id) return
   const supabase = getServiceClient()
+  // Delete sessions first (FK), then user row, then auth user
+  await supabase.from('Session').delete().eq('userId', id)
+  await supabase.from('User').delete().eq('id', id)
   await supabase.auth.admin.deleteUser(id)
 }
 

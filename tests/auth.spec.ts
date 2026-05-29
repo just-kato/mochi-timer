@@ -26,7 +26,8 @@ test.describe('Auth', () => {
     await page.getByLabel('Password').fill(TEST_PASSWORD)
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL('/timer')
-    await expect(page.getByRole('heading', { name: 'Timer' })).toBeVisible()
+    // Verify timer page loaded — START button is always present
+    await expect(page.getByRole('button', { name: /start/i })).toBeVisible()
   })
 
   test('non-invited email is rejected', async ({ page }) => {
@@ -40,7 +41,6 @@ test.describe('Auth', () => {
   })
 
   test('admin can invite a new user', async ({ page }) => {
-    // Sign in as admin
     await page.goto('/login')
     await page.getByRole('button', { name: 'Password' }).click()
     await page.getByLabel('Email').fill(ADMIN_EMAIL)
@@ -48,14 +48,15 @@ test.describe('Auth', () => {
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL('/timer')
 
-    // Navigate to admin and invite
+    // Navigate to profile → Admin tab
     const inviteEmail = `invite-${Date.now()}@mochi-test.dev`
-    await page.goto('/admin')
+    await page.goto('/profile')
+    await page.getByRole('button', { name: 'Admin' }).click()
     await page.getByLabel('Invite by email').fill(inviteEmail)
     await page.getByRole('button', { name: 'Send invite' }).click()
     await expect(page.getByText(new RegExp(`invite sent to ${inviteEmail}`, 'i'))).toBeVisible()
 
-    // Cleanup: delete the newly invited user from Supabase
+    // Cleanup
     const supabase = getServiceClient()
     const { data } = await supabase.auth.admin.listUsers()
     const newUser = data.users.find((u) => u.email === inviteEmail)

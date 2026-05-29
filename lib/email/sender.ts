@@ -6,9 +6,8 @@ import { secondsToHours } from '@/lib/utils/time'
 import { formatDateForInput } from '@/lib/utils/format'
 import { logger } from '@/lib/utils/logger'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 export async function sendWeeklySummaryToAll(weekStart: Date, weekEnd: Date): Promise<void> {
+  const resend = new Resend(process.env.RESEND_API_KEY)
   const users = await getAllUsers()
   const eligible = users.filter((u) => u.emailSummary && u.email)
 

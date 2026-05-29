@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 type Mode = 'magic-link' | 'password'
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [sent, setSent] = useState(false)
 
   const supabase = createClient()
+  const router = useRouter()
 
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault()
@@ -40,6 +42,8 @@ export default function LoginPage() {
     setLoading(false)
     if (error) {
       setError(error.message)
+    } else {
+      router.push('/timer')
     }
   }
 
@@ -79,13 +83,13 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-cream dark:bg-zinc-950">
       <div className="w-full max-w-sm">
-        <div className="flex items-end gap-4 mb-1">
+        <div className="flex flex-col items-start gap-3 mb-1">
           <Image
             src="/mr.mochi logo black.png"
             alt="Mochi Timer"
-            width={80}
-            height={80}
-            className="object-contain shrink-0 dark:invert"
+            width={100}
+            height={100}
+            className="object-contain dark:invert"
           />
           <h1 className="text-5xl font-bold uppercase tracking-tight leading-none dark:text-white">
             MOCHI<br />TIMER

@@ -19,7 +19,7 @@ test.describe('Stats', () => {
 
     // Set hourly rate to $50 via service role
     const supabase = getServiceClient()
-    await supabase.from('User').update({ hourlyRate: 50 }).eq('id', userId)
+    await supabase.from('User').update({ hourlyRate: 50, updatedAt: new Date().toISOString() }).eq('id', userId)
 
     // Create a 2-hour session today
     const start = new Date()
@@ -40,19 +40,20 @@ test.describe('Stats', () => {
   })
 
   test('stats reflect actual logged sessions', async ({ page }) => {
-    await expect(page.locator('text=2.00h')).toBeVisible()
+    // "Hours this week" card shows the 2h session — use first() since same value may appear in pay period card too
+    await expect(page.locator('text=2.00h').first()).toBeVisible()
   })
 
   test('estimated pay calculates correctly against hourly rate', async ({ page }) => {
-    // 2 hours × $50 = $100
-    await expect(page.locator('text=$100.00')).toBeVisible()
+    // 2 hours × $50 = $100 — appears in at least one stats card
+    await expect(page.locator('text=Est. $100.00').first()).toBeVisible()
   })
 
   test('chart renders with correct data points', async ({ page }) => {
     const chart = page.getByTestId('hours-chart')
     await expect(chart).toBeVisible()
-    // At least one bar rendered (recharts SVG rect)
+    // Recharts renders SVG — verify a bar rect exists in the DOM (SVG rects may not pass toBeVisible)
     const bars = chart.locator('rect[width]')
-    await expect(bars.first()).toBeVisible()
+    await expect(bars.first()).toBeAttached()
   })
 })

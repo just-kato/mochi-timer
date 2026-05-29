@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createSession, getSessionsByDateRange } from '@/lib/db/sessions'
-import { startOfDay, endOfDay } from '@/lib/utils/time'
+import { dayBoundsInTimezone } from '@/lib/utils/time'
+import { getUserById } from '@/lib/db/users'
 import { logger } from '@/lib/utils/logger'
 
 export async function GET(request: Request): Promise<NextResponse> {
@@ -18,12 +19,11 @@ export async function GET(request: Request): Promise<NextResponse> {
   let end: Date
 
   if (dateParam) {
-    // Parse "YYYY-MM-DD" as local midnight — new Date(string) parses ISO dates as
-    // UTC midnight, which startOfDay then shifts to the previous local day in UTC- timezones.
-    const [y, m, d] = dateParam.split('-').map(Number)
-    const local = new Date(y, m - 1, d)
-    start = startOfDay(local)
-    end = endOfDay(local)
+    const dbUser = await getUserById(user.id)
+    const timezone = dbUser?.timezone ?? 'America/New_York'
+    const bounds = dayBoundsInTimezone(dateParam, timezone)
+    start = bounds.start
+    end = bounds.end
   } else if (startParam && endParam) {
     start = new Date(startParam)
     end = new Date(endParam)

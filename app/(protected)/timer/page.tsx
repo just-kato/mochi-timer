@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { getActiveSession, getSessionsByDay, getRecentNoteSuggestions } from '@/lib/db/sessions'
+import { getActiveSession, getSessionsByDayInTz, getRecentNoteSuggestions } from '@/lib/db/sessions'
 import { getUserById } from '@/lib/db/users'
 import { ActiveTimer } from '@/components/timer/ActiveTimer'
 import { TodaySessions } from '@/components/timer/TodaySessions'
@@ -14,10 +14,16 @@ export default async function TimerPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [activeSession, todaySessions, dbUser, recentNotes] = await Promise.all([
+  // Fetch user first so we have their timezone for the sessions query
+  const dbUser = await getUserById(user.id)
+  const timezone = dbUser?.timezone ?? 'America/New_York'
+
+  // Get today's date string in the user's timezone (server runs UTC, user may differ)
+  const todayInTz = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date())
+
+  const [activeSession, todaySessions, recentNotes] = await Promise.all([
     getActiveSession(user.id),
-    getSessionsByDay(user.id, new Date()),
-    getUserById(user.id),
+    getSessionsByDayInTz(user.id, todayInTz, timezone),
     getRecentNoteSuggestions(user.id),
   ])
 
@@ -28,8 +34,6 @@ export default async function TimerPage() {
         synced: true,
       }
     : null
-
-  const timezone = dbUser?.timezone ?? 'America/New_York'
 
   return (
     <>
@@ -43,7 +47,7 @@ export default async function TimerPage() {
         </ErrorBoundary>
 
         <section className="mt-12">
-          <TodaySessions initialSessions={todaySessions} />
+          <TodaySessions initialSessions={todaySessions} timezone={timezone} />
         </section>
       </div>
     </>

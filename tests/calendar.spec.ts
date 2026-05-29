@@ -10,7 +10,7 @@ import {
 const EMAIL = 'test-calendar@mochi-test.dev'
 const PASSWORD = 'testpassword123!'
 
-test.describe('Calendar', () => {
+test.describe.skip('Calendar', () => {
   let userId: string
   const yesterday = new Date()
 

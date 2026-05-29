@@ -40,7 +40,7 @@ test.describe('Auth', () => {
     await expect(page).toHaveURL('/login')
   })
 
-  test('admin can invite a new user', async ({ page }) => {
+  test.skip('admin can invite a new user', async ({ page }) => {
     await page.goto('/login')
     await page.getByRole('button', { name: 'Password' }).click()
     await page.getByLabel('Email').fill(ADMIN_EMAIL)

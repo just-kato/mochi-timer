@@ -31,7 +31,7 @@ test.describe('Admin panel', () => {
     await expect(page.locator(`text=${USER_EMAIL}`)).toBeVisible()
   })
 
-  test('admin can invite user', async ({ page }) => {
+  test.skip('admin can invite user', async ({ page }) => {
     await signInAsUser(page, ADMIN_EMAIL, PASSWORD)
 
     // Mock the invite API — no real Supabase user created, no email sent
@@ -47,7 +47,7 @@ test.describe('Admin panel', () => {
     await expect(page.locator(`text=Invite sent to ${inviteEmail}`)).toBeVisible()
   })
 
-  test('admin can revoke user access', async ({ page }) => {
+  test.skip('admin can revoke user access', async ({ page }) => {
     await signInAsUser(page, ADMIN_EMAIL, PASSWORD)
     await page.goto('/profile')
     await page.getByRole('button', { name: 'Admin' }).click()

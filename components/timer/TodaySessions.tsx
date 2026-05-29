@@ -9,10 +9,11 @@ import { AddSessionModal } from './AddSessionModal'
 
 interface TodaySessionsProps {
   initialSessions: Session[]
+  timezone?: string
 }
 
-function getTodayEST(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date())
+function getTodayInTz(timezone: string): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date())
 }
 
 function formatDayLabel(dateStr: string): string {
@@ -29,30 +30,30 @@ function shiftDate(dateStr: string, n: number): string {
   return new Intl.DateTimeFormat('en-CA').format(date)
 }
 
-export function TodaySessions({ initialSessions }: TodaySessionsProps) {
+export function TodaySessions({ initialSessions, timezone = 'America/New_York' }: TodaySessionsProps) {
   const router = useRouter()
-  const todayEST = getTodayEST()
-  const [selectedDate, setSelectedDate] = useState(todayEST)
+  const todayInTz = getTodayInTz(timezone)
+  const [selectedDate, setSelectedDate] = useState(todayInTz)
   const [sessions, setSessions] = useState<Session[]>(initialSessions)
   const [loading, setLoading] = useState(false)
   const [editingSession, setEditingSession] = useState<Session | null>(null)
   const [addingSession, setAddingSession] = useState(false)
-  const isToday = selectedDate === todayEST
+  const isToday = selectedDate === todayInTz
 
-  // Auto-clear at midnight EST
+  // Auto-clear at midnight in user's timezone
   useEffect(() => {
     const id = setInterval(() => {
-      const current = getTodayEST()
-      if (current !== todayEST && isToday) {
+      const current = getTodayInTz(timezone)
+      if (current !== todayInTz && isToday) {
         setSessions([])
         router.refresh()
       }
     }, 60_000)
     return () => clearInterval(id)
-  }, [todayEST, isToday, router])
+  }, [todayInTz, isToday, router, timezone])
 
   const loadDay = useCallback(async (date: string) => {
-    if (date === todayEST) {
+    if (date === todayInTz) {
       setSessions(initialSessions)
       return
     }
@@ -66,11 +67,11 @@ export function TodaySessions({ initialSessions }: TodaySessionsProps) {
     } finally {
       setLoading(false)
     }
-  }, [todayEST, initialSessions])
+  }, [todayInTz, initialSessions])
 
   function navigate(n: -1 | 1) {
     const next = shiftDate(selectedDate, n)
-    if (next > todayEST) return
+    if (next > todayInTz) return
     setSelectedDate(next)
     void loadDay(next)
   }

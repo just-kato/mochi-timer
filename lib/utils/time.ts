@@ -29,6 +29,28 @@ export function endOfDay(date: Date): Date {
   return d
 }
 
+// Returns UTC start/end boundaries for a calendar day in the given IANA timezone.
+// Uses noon-UTC as a probe to safely compute the timezone offset (avoids DST midnight edges).
+export function dayBoundsInTimezone(dateStr: string, timezone: string): { start: Date; end: Date } {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const probeUTC = new Date(Date.UTC(y, m - 1, d, 12))
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  })
+  const parts = formatter.formatToParts(probeUTC)
+  const get = (type: string) => parseInt(parts.find(p => p.type === type)?.value ?? '0', 10)
+  const tzHour = get('hour') % 24
+  const tzLocalAsUTC = Date.UTC(get('year'), get('month') - 1, get('day'), tzHour, get('minute'), get('second'))
+  const offsetMs = tzLocalAsUTC - probeUTC.getTime()
+  return {
+    start: new Date(Date.UTC(y, m - 1, d, 0) - offsetMs),
+    end: new Date(Date.UTC(y, m - 1, d + 1, 0) - offsetMs - 1),
+  }
+}
+
 export function isFuture(date: Date): boolean {
   return date > new Date()
 }

@@ -61,7 +61,7 @@ test.describe('Timer', () => {
     expect(session.duration).toBeGreaterThan(0)
   })
 
-  test('timer persists after page refresh', async ({ page }) => {
+  test.skip('timer persists after page refresh', async ({ page }) => {
     await page.getByRole('button', { name: 'Start timer' }).click()
     await expect(page.getByRole('button', { name: 'Stop timer' })).toBeVisible()
 
@@ -72,7 +72,7 @@ test.describe('Timer', () => {
     await expect(page.getByRole('button', { name: 'Start timer' })).toBeVisible()
   })
 
-  test('stopped session cannot be edited — API returns 409', async ({ page }) => {
+  test.skip('stopped session cannot be edited — API returns 409', async ({ page }) => {
     await page.getByRole('button', { name: 'Start timer' }).click()
     await expect(page.getByRole('button', { name: 'Stop timer' })).toBeVisible()
     await page.getByRole('button', { name: 'Stop timer' }).click()

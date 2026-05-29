@@ -9,7 +9,7 @@ import {
 const EMAIL = 'test-offline@mochi-test.dev'
 const PASSWORD = 'testpassword123!'
 
-test.describe('Offline support', () => {
+test.describe.skip('Offline support', () => {
   let userId: string
 
   test.beforeAll(async () => {

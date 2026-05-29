@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     startupImage: '/icons/icon-512x512.png',
   },
   icons: {
-    icon: '/favicon.ico',
+    icon: '/mr.mochi logo white.png',
     apple: [
       { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
       { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },

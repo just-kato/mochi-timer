@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { TIMEZONES } from '@/lib/constants/timezones'
 
@@ -28,6 +28,18 @@ export function SettingsForm({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const [darkMode, setDarkMode] = useState(false)
+
+  useEffect(() => {
+    setDarkMode(document.documentElement.classList.contains('dark'))
+  }, [])
+
+  function toggleDarkMode() {
+    const next = !darkMode
+    document.documentElement.classList.toggle('dark', next)
+    try { localStorage.setItem('mochi-theme', next ? 'dark' : 'light') } catch {}
+    setDarkMode(next)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -115,6 +127,23 @@ export function SettingsForm({
             </optgroup>
           ))}
         </select>
+      </div>
+
+      <div className="mb-6 flex items-center justify-between">
+        <label className="text-xs font-bold uppercase tracking-widest">
+          DARK MODE
+        </label>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={darkMode}
+          onClick={toggleDarkMode}
+          className={`w-16 min-h-11 border-[3px] border-black text-xs font-bold uppercase tracking-widest transition-colors ${
+            darkMode ? 'bg-black text-white' : 'bg-white text-black'
+          }`}
+        >
+          {darkMode ? 'ON' : 'OFF'}
+        </button>
       </div>
 
       <div className="mb-8 flex items-center justify-between">

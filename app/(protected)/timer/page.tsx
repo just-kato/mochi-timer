@@ -8,7 +8,6 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { TimerCrashFallback } from '@/components/timer/TimerCrashFallback'
 import { OfflineIndicator } from '@/components/shared/OfflineIndicator'
 import { SyncIndicator } from '@/components/shared/SyncIndicator'
-import { formatDate } from '@/lib/utils/format'
 
 export default async function TimerPage() {
   const supabase = await createClient()
@@ -30,7 +29,6 @@ export default async function TimerPage() {
       }
     : null
 
-  const today = formatDate(new Date())
   const timezone = dbUser?.timezone ?? 'America/New_York'
 
   return (
@@ -45,9 +43,6 @@ export default async function TimerPage() {
         </ErrorBoundary>
 
         <section className="mt-12">
-          <h2 className="text-xs font-bold uppercase tracking-widest mb-4 pb-3 border-b-[3px] border-black">
-            {today}
-          </h2>
           <TodaySessions initialSessions={todaySessions} />
         </section>
       </div>

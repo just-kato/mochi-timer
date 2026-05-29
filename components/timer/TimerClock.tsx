@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface TimerClockProps {
   timezone: string
@@ -50,6 +51,8 @@ function buildClockData(timezone: string): ClockData {
 
 export function TimerClock({ timezone }: TimerClockProps) {
   const [clock, setClock] = useState<ClockData | null>(null)
+  const [spinKey, setSpinKey] = useState(0)
+  const router = useRouter()
 
   useEffect(() => {
     const update = () => setClock(buildClockData(timezone))
@@ -58,11 +61,30 @@ export function TimerClock({ timezone }: TimerClockProps) {
     return () => clearInterval(id)
   }, [timezone])
 
+  function handleSync() {
+    setSpinKey((k) => k + 1)
+    router.refresh()
+  }
+
   if (!clock) return null
 
   return (
-    <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-6">
-      {clock.greeting} — {clock.time} {clock.tzAbbr}
-    </p>
+    <div className="flex items-center justify-between mb-6">
+      <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+        {clock.greeting} — {clock.time} {clock.tzAbbr}
+      </p>
+      <button
+        type="button"
+        onClick={handleSync}
+        aria-label="Sync sessions"
+        className="text-zinc-400 hover:text-black dark:hover:text-zinc-100 transition-colors"
+      >
+        <svg key={spinKey} xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={spinKey > 0 ? 'spin-once' : ''}>
+          <polyline points="23 4 23 10 17 10" />
+          <polyline points="1 20 1 14 7 14" />
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+        </svg>
+      </button>
+    </div>
   )
 }

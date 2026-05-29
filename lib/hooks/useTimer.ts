@@ -8,6 +8,7 @@ import type { LocalSession } from '@/lib/indexeddb/client'
 
 export interface TimerState {
   running: boolean
+  paused: boolean
   sessionId: string | null
   startTime: Date | null
   elapsed: string
@@ -19,29 +20,38 @@ export function useTimer(initialSession: LocalSession | null = null) {
   const online = useOnlineStatus()
   const [state, setState] = useState<TimerState>({
     running: initialSession !== null,
+    paused: false,
     sessionId: initialSession?.id ?? null,
     startTime: initialSession ? new Date(initialSession.startTime) : null,
     elapsed: '00:00:00',
     loading: false,
     error: null,
   })
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Tick elapsed time every second while running
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Total milliseconds accumulated while paused
+  const totalPausedMsRef = useRef(0)
+  // Timestamp when the current pause began (null = not paused)
+  const pausedAtRef = useRef<number | null>(null)
+
+  // Tick elapsed time every second while running and not paused
   useEffect(() => {
-    if (!state.running || !state.startTime) {
+    if (!state.running || state.paused || !state.startTime) {
       if (intervalRef.current) clearInterval(intervalRef.current)
       return
     }
     intervalRef.current = setInterval(() => {
-      const secs = Math.floor((Date.now() - state.startTime!.getTime()) / 1000)
-      setState((s) => ({ ...s, elapsed: secondsToDisplay(secs) }))
+      const rawMs = Date.now() - state.startTime!.getTime()
+      const netSecs = Math.floor((rawMs - totalPausedMsRef.current) / 1000)
+      setState((s) => ({ ...s, elapsed: secondsToDisplay(Math.max(0, netSecs)) }))
     }, 1000)
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  }, [state.running, state.startTime])
+  }, [state.running, state.paused, state.startTime])
 
   const start = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: null }))
+    totalPausedMsRef.current = 0
+    pausedAtRef.current = null
     const id = crypto.randomUUID()
     const startTime = new Date()
 
@@ -62,22 +72,45 @@ export function useTimer(initialSession: LocalSession | null = null) {
       }
     }
 
-    setState({ running: true, sessionId: id, startTime, elapsed: '00:00:00', loading: false, error: null })
+    setState({ running: true, paused: false, sessionId: id, startTime, elapsed: '00:00:00', loading: false, error: null })
   }, [online])
+
+  const pause = useCallback(() => {
+    if (!state.running || state.paused) return
+    pausedAtRef.current = Date.now()
+    setState((s) => ({ ...s, paused: true }))
+  }, [state.running, state.paused])
+
+  const resume = useCallback(() => {
+    if (!state.running || !state.paused) return
+    if (pausedAtRef.current !== null) {
+      totalPausedMsRef.current += Date.now() - pausedAtRef.current
+      pausedAtRef.current = null
+    }
+    setState((s) => ({ ...s, paused: false }))
+  }, [state.running, state.paused])
 
   const stop = useCallback(async (notes?: string) => {
     if (!state.sessionId || !state.startTime) return
     setState((s) => ({ ...s, loading: true, error: null }))
-    const endTime = new Date()
+    const realEndTime = new Date()
 
-    const duration = Math.floor((endTime.getTime() - state.startTime.getTime()) / 1000)
+    // Accumulate any in-progress pause duration
+    let totalPausedMs = totalPausedMsRef.current
+    if (pausedAtRef.current !== null) {
+      totalPausedMs += realEndTime.getTime() - pausedAtRef.current
+    }
+
+    // Shift endTime back by paused duration so the server calculates the correct net duration
+    const effectiveEndTime = new Date(realEndTime.getTime() - totalPausedMs)
+    const duration = Math.max(0, Math.floor((effectiveEndTime.getTime() - state.startTime.getTime()) / 1000))
 
     if (online) {
       try {
         const res = await fetch(`/api/sessions/${state.sessionId}/stop`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ endTime: endTime.toISOString() }),
+          body: JSON.stringify({ endTime: effectiveEndTime.toISOString() }),
         })
         if (!res.ok) throw new Error('Failed to stop session')
       } catch (err) {
@@ -92,7 +125,7 @@ export function useTimer(initialSession: LocalSession | null = null) {
       await saveSession({
         id: state.sessionId,
         startTime: state.startTime.toISOString(),
-        endTime: endTime.toISOString(),
+        endTime: effectiveEndTime.toISOString(),
         duration,
         notes: notes?.trim() ?? undefined,
         synced: false,
@@ -100,19 +133,18 @@ export function useTimer(initialSession: LocalSession | null = null) {
     }
 
     await clearActiveSession()
-    if (notes !== undefined && notes.trim()) {
-      // Notes saved via separate PATCH — only if we have notes to save
-      if (online) {
-        await fetch(`/api/sessions/${state.sessionId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ notes }),
-        }).catch(() => {})
-      }
+    if (notes !== undefined && notes.trim() && online) {
+      await fetch(`/api/sessions/${state.sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes }),
+      }).catch(() => {})
     }
 
-    setState({ running: false, sessionId: null, startTime: null, elapsed: '00:00:00', loading: false, error: null })
+    totalPausedMsRef.current = 0
+    pausedAtRef.current = null
+    setState({ running: false, paused: false, sessionId: null, startTime: null, elapsed: '00:00:00', loading: false, error: null })
   }, [state.sessionId, state.startTime, online])
 
-  return { ...state, start, stop }
+  return { ...state, start, stop, pause, resume }
 }

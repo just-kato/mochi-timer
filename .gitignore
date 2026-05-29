@@ -29,6 +29,9 @@ public/workbox-*.js
 .DS_Store
 Thumbs.db
 
+# Claude Code settings (may contain shell permissions with credentials)
+.claude/
+
 # Editor
 .vscode/
 .idea/

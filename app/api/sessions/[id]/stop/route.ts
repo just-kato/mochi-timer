@@ -15,8 +15,9 @@ export async function PATCH(
 
   let endTime: Date
   let startTime: Date | undefined
+  let taskId: string | undefined
   try {
-    const body = await request.json() as { endTime?: unknown; startTime?: unknown }
+    const body = await request.json() as { endTime?: unknown; startTime?: unknown; taskId?: unknown }
     if (typeof body.endTime !== 'string') {
       return NextResponse.json({ error: 'endTime is required' }, { status: 400 })
     }
@@ -28,12 +29,15 @@ export async function PATCH(
       const parsed = new Date(body.startTime)
       if (!isNaN(parsed.getTime())) startTime = parsed
     }
+    if (typeof body.taskId === 'string' && body.taskId.trim()) {
+      taskId = body.taskId.trim()
+    }
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
   try {
-    const session = await stopSession(id, user.id, endTime, startTime)
+    const session = await stopSession(id, user.id, endTime, startTime, taskId)
     logger.info('Session stopped', { id, userId: user.id })
     return NextResponse.json({ session })
   } catch (err) {

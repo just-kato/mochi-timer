@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import type { Session } from '@prisma/client'
 import { formatDateTimeLocal } from '@/lib/utils/format'
+import { toast } from '@/components/shared/Toast'
 
 type EditMode = 'times' | 'duration'
 type Anchor = 'end' | 'start'
@@ -48,22 +49,26 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
   const [endTime, setEndTime] = useState(
     session.endTime ? formatDateTimeLocal(new Date(session.endTime)) : ''
   )
+  const [startTouched, setStartTouched] = useState(false)
+  const [endTouched, setEndTouched] = useState(false)
   const [notes, setNotes] = useState(session.notes ?? '')
+  const [taskId, setTaskId] = useState(session.taskId ?? '')
   const [duration, setDuration] = useState(session.duration ? secondsToHHMM(session.duration) : '')
   const [anchor, setAnchor] = useState<Anchor>('end')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Anchor duration preview to original session times to avoid seconds-truncation drift
   const preview = useMemo<Date | null>(() => {
     const secs = parseDurationToSeconds(duration)
     if (!secs || secs <= 0) return null
     if (anchor === 'end') {
-      const end = new Date(endTime)
+      const end = session.endTime ? new Date(session.endTime) : new Date(endTime)
       return isNaN(end.getTime()) ? null : new Date(end.getTime() - secs * 1000)
     }
-    const start = new Date(startTime)
+    const start = new Date(session.startTime)
     return isNaN(start.getTime()) ? null : new Date(start.getTime() + secs * 1000)
-  }, [duration, anchor, startTime, endTime])
+  }, [duration, anchor, session.startTime, session.endTime, endTime])
 
   function switchMode(next: EditMode) {
     setMode(next)
@@ -74,40 +79,57 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
     e.preventDefault()
     setError(null)
 
-    let finalStart: Date
-    let finalEnd: Date
+    if (!taskId.trim()) { setError('Task ID is required'); return }
 
-    if (mode === 'times') {
-      finalStart = new Date(startTime)
-      finalEnd = new Date(endTime)
-      if (!startTime || isNaN(finalStart.getTime())) { setError('Start time is required'); return }
-      if (!endTime || isNaN(finalEnd.getTime())) { setError('End time is required'); return }
-    } else {
-      const secs = parseDurationToSeconds(duration)
-      if (!secs || secs <= 0) { setError('Enter a valid duration — e.g. 1:30 or 2:45:00'); return }
-      if (anchor === 'end') {
-        finalEnd = new Date(endTime)
-        if (!endTime || isNaN(finalEnd.getTime())) { setError('End time is required'); return }
-        finalStart = new Date(finalEnd.getTime() - secs * 1000)
-      } else {
-        finalStart = new Date(startTime)
-        if (!startTime || isNaN(finalStart.getTime())) { setError('Start time is required'); return }
-        finalEnd = new Date(finalStart.getTime() + secs * 1000)
-      }
+    const payload: Record<string, unknown> = {
+      notes: notes.trim() || null,
+      taskId: taskId.trim(),
     }
 
-    if (finalEnd <= finalStart) { setError('End time must be after start time'); return }
+    if (mode === 'duration') {
+      const secs = parseDurationToSeconds(duration)
+      if (!secs || secs <= 0) { setError('Enter a valid duration — e.g. 1:30 or 2:45:00'); return }
+
+      // Anchor to the exact original session time — no second-truncation drift
+      if (anchor === 'end') {
+        if (!session.endTime) { setError('No end time to anchor to'); return }
+        const anchorEnd = new Date(session.endTime)
+        payload.startTime = new Date(anchorEnd.getTime() - secs * 1000).toISOString()
+        // endTime unchanged — server uses original from DB
+      } else {
+        const anchorStart = new Date(session.startTime)
+        payload.endTime = new Date(anchorStart.getTime() + secs * 1000).toISOString()
+        // startTime unchanged — server uses original from DB
+      }
+    } else {
+      // Times mode: only send a field if the user actually touched it
+      if (startTouched) {
+        const s = new Date(startTime)
+        if (isNaN(s.getTime())) { setError('Start time is invalid'); return }
+        payload.startTime = s.toISOString()
+      }
+      if (endTouched) {
+        const e2 = new Date(endTime)
+        if (isNaN(e2.getTime())) { setError('End time is invalid'); return }
+        payload.endTime = e2.toISOString()
+      }
+
+      // Validate order using effective times (touched → input, untouched → original)
+      const effectiveStart = startTouched ? new Date(startTime) : new Date(session.startTime)
+      const effectiveEnd = endTouched
+        ? new Date(endTime)
+        : (session.endTime ? new Date(session.endTime) : null)
+      if (effectiveEnd && effectiveEnd <= effectiveStart) {
+        setError('End time must be after start time'); return
+      }
+    }
 
     setLoading(true)
     try {
       const res = await fetch(`/api/sessions/${session.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          startTime: finalStart.toISOString(),
-          endTime: finalEnd.toISOString(),
-          notes: notes.trim() || null,
-        }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const data = await res.json() as { error?: string }
@@ -130,7 +152,7 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
       role="dialog"
       aria-modal="true"
       aria-label="Edit session"
-      onClick={onClose}
+      onClick={() => { if (taskId.trim()) onClose(); else toast({ message: 'Enter a Task ID before closing', type: 'error' }) }}
     >
       <div
         className="w-full max-w-md border-[3px] border-black bg-white dark:bg-zinc-900 shadow-brutal"
@@ -139,7 +161,7 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
         {/* Header */}
         <div className="bg-black px-4 py-3 flex items-center justify-between">
           <p className="text-xs font-bold uppercase tracking-widest text-brutalist-yellow">Edit Session</p>
-          <button type="button" onClick={onClose} className="text-brutalist-yellow text-sm font-bold hover:opacity-70" aria-label="Close">
+          <button type="button" onClick={() => { if (taskId.trim()) onClose(); else toast({ message: 'Enter a Task ID before closing', type: 'error' }) }} disabled={!taskId.trim()} className="text-brutalist-yellow text-sm font-bold hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Close">
             ✕
           </button>
         </div>
@@ -177,13 +199,13 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
                 <label htmlFor="edit-start" className="block text-xs font-bold uppercase tracking-widest mb-2 dark:text-zinc-100">
                   Start Time
                 </label>
-                <input id="edit-start" type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={inputClass} required />
+                <input id="edit-start" type="datetime-local" step="1" value={startTime} onChange={(e) => { setStartTime(e.target.value); setStartTouched(true) }} className={inputClass} />
               </div>
               <div>
                 <label htmlFor="edit-end" className="block text-xs font-bold uppercase tracking-widest mb-2 dark:text-zinc-100">
                   End Time
                 </label>
-                <input id="edit-end" type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} className={inputClass} required />
+                <input id="edit-end" type="datetime-local" step="1" value={endTime} onChange={(e) => { setEndTime(e.target.value); setEndTouched(true) }} className={inputClass} />
               </div>
             </>
           ) : (
@@ -275,6 +297,21 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
             </>
           )}
 
+          {/* Task ID — always visible, required */}
+          <div>
+            <label htmlFor="edit-task-id" className="block text-xs font-bold uppercase tracking-widest mb-2 dark:text-zinc-100">
+              Task ID <span className="text-brutalist-red">*</span>
+            </label>
+            <input
+              id="edit-task-id"
+              type="text"
+              value={taskId}
+              onChange={(e) => setTaskId(e.target.value)}
+              placeholder="Paste task UUID"
+              className={`${inputClass} font-mono`}
+            />
+          </div>
+
           {/* Notes — always visible */}
           <div>
             <label htmlFor="edit-notes" className="block text-xs font-bold uppercase tracking-widest mb-2 dark:text-zinc-100">
@@ -299,7 +336,7 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
             <button type="button" onClick={onClose} disabled={loading} className="flex-1 py-3 text-xs font-bold uppercase tracking-widest border-[3px] border-black bg-white dark:bg-zinc-900 dark:text-zinc-100 disabled:opacity-50">
               Cancel
             </button>
-            <button type="submit" disabled={loading} className="flex-1 py-3 text-xs font-bold uppercase tracking-widest border-[3px] border-black bg-black text-brutalist-yellow disabled:opacity-50">
+            <button type="submit" disabled={loading || !taskId.trim()} className="flex-1 py-3 text-xs font-bold uppercase tracking-widest border-[3px] border-black bg-black text-brutalist-yellow disabled:opacity-50">
               {loading ? 'Saving…' : 'Save'}
             </button>
           </div>

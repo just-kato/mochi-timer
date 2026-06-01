@@ -15,9 +15,10 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
   let startTime: Date | undefined
   let endTime: Date | undefined
   let notes: string | null | undefined
+  let taskId: string | null | undefined
 
   try {
-    const body = await request.json() as { startTime?: unknown; endTime?: unknown; notes?: unknown }
+    const body = await request.json() as { startTime?: unknown; endTime?: unknown; notes?: unknown; taskId?: unknown }
 
     if (body.startTime !== undefined) {
       if (typeof body.startTime !== 'string') return NextResponse.json({ error: 'Invalid startTime' }, { status: 400 })
@@ -33,8 +34,12 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
       if (body.notes !== null && typeof body.notes !== 'string') return NextResponse.json({ error: 'Invalid notes' }, { status: 400 })
       notes = body.notes as string | null
     }
+    if (body.taskId !== undefined) {
+      if (body.taskId !== null && typeof body.taskId !== 'string') return NextResponse.json({ error: 'Invalid taskId' }, { status: 400 })
+      taskId = (body.taskId as string | null)?.trim() || null
+    }
 
-    if (startTime === undefined && endTime === undefined && notes === undefined) {
+    if (startTime === undefined && endTime === undefined && notes === undefined && taskId === undefined) {
       return NextResponse.json({ error: 'At least one field required' }, { status: 400 })
     }
     if (startTime !== undefined && endTime !== undefined && endTime <= startTime) {
@@ -45,7 +50,7 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
   }
 
   try {
-    const session = await updateSession(id, user.id, { startTime, endTime, notes })
+    const session = await updateSession(id, user.id, { startTime, endTime, notes, taskId })
     logger.info('Session updated', { id, userId: user.id })
     return NextResponse.json({ session })
   } catch (err) {

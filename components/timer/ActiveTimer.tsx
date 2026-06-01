@@ -112,7 +112,7 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
         running={running}
         paused={paused}
         loading={loading}
-        canStop={!!taskId.trim()}
+        canStop={true}
         onStart={start}
         onStop={handleStop}
         onPause={pause}
@@ -124,7 +124,7 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
           {/* Task ID — always required, persisted across sessions */}
           <div>
             <label htmlFor="task-id" className="block text-xs font-bold uppercase tracking-widest mb-2 dark:text-zinc-100">
-              TASK ID <span className="text-brutalist-red">*</span>
+              TASK ID
             </label>
             <input
               id="task-id"

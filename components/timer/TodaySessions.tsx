@@ -178,7 +178,7 @@ export function TodaySessions({ initialSessions, timezone = 'America/New_York', 
 
       {!loading && sessions.length > 0 && (
         <>
-          <ul className="border-[3px] border-black dark:border-zinc-700 max-h-48 sm:max-h-80 overflow-y-auto">
+          <ul className="border-[3px] border-black dark:border-zinc-700 max-h-50 sm:max-h-80 overflow-y-auto">
             {sorted.map((session) => (
               <SessionItem
                 key={session.id}

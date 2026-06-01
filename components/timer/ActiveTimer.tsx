@@ -1,11 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { TimerButton } from './TimerButton'
 import { useTimer } from '@/lib/hooks/useTimer'
 import { useOnlineStatus } from '@/lib/hooks/useOnlineStatus'
 import type { LocalSession } from '@/lib/indexeddb/client'
+
+const LS_TASK_ID   = 'mochi-last-task-id'
+const LS_LAST_NOTE = 'mochi-last-note'
+const LS_REPEAT    = 'mochi-repeat-note'
 
 interface ActiveTimerProps {
   initialSession: LocalSession | null
@@ -13,16 +17,53 @@ interface ActiveTimerProps {
 }
 
 export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerProps) {
-  const [notes, setNotes] = useState('')
-  const [taskId, setTaskId] = useState('')
+  const [taskId, setTaskId]       = useState('')
+  const [notes, setNotes]         = useState('')
+  const [repeatNote, setRepeatNote] = useState(false)
+
+  // Load persisted values after mount (avoids SSR mismatch)
+  useEffect(() => {
+    const savedTaskId = localStorage.getItem(LS_TASK_ID) ?? ''
+    const savedNote   = localStorage.getItem(LS_LAST_NOTE) ?? ''
+    const repeatOn    = localStorage.getItem(LS_REPEAT) === 'true'
+    setTaskId(savedTaskId)
+    setRepeatNote(repeatOn)
+    if (repeatOn) setNotes(savedNote)
+  }, [])
+
   const router = useRouter()
   const online = useOnlineStatus()
   const { running, paused, elapsed, loading, error, start, stop, pause, resume } = useTimer(initialSession)
 
+  function handleTaskIdChange(value: string) {
+    setTaskId(value)
+    // Persist immediately so switching tabs to look up the UUID doesn't lose it
+    localStorage.setItem(LS_TASK_ID, value)
+  }
+
+  function toggleRepeat() {
+    const next = !repeatNote
+    setRepeatNote(next)
+    localStorage.setItem(LS_REPEAT, String(next))
+    if (next) {
+      const saved = localStorage.getItem(LS_LAST_NOTE) ?? ''
+      setNotes(saved)
+    } else {
+      setNotes('')
+    }
+  }
+
   async function handleStop() {
-    await stop(notes, taskId.trim())
-    setNotes('')
-    setTaskId('')
+    const finalNotes  = notes.trim()
+    const finalTaskId = taskId.trim()
+
+    if (finalTaskId) localStorage.setItem(LS_TASK_ID, finalTaskId)
+    if (finalNotes)  localStorage.setItem(LS_LAST_NOTE, finalNotes)
+
+    await stop(finalNotes, finalTaskId)
+
+    // Repeat mode: restore note for the next session; otherwise clear
+    setNotes(repeatNote ? (localStorage.getItem(LS_LAST_NOTE) ?? '') : '')
     if (online) router.refresh()
   }
 
@@ -32,8 +73,6 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
         className={`w-full border-[3px] flex flex-col items-center justify-center py-10 px-6 shadow-brutal transition-colors ${
           running && !paused
             ? 'border-black dark:border-black bg-brutalist-yellow'
-            : running && paused
-            ? 'border-black dark:border-zinc-700 bg-white dark:bg-zinc-900'
             : 'border-black dark:border-zinc-700 bg-white dark:bg-zinc-900'
         }`}
         role="status"
@@ -65,34 +104,60 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
 
       {running && (
         <div className="w-full space-y-3">
+          {/* Task ID — always required, persisted across sessions */}
           <div>
-            <label htmlFor="task-id" className="block text-xs font-bold uppercase tracking-widest mb-2">
+            <label htmlFor="task-id" className="block text-xs font-bold uppercase tracking-widest mb-2 dark:text-zinc-100">
               TASK ID <span className="text-brutalist-red">*</span>
             </label>
             <input
               id="task-id"
               type="text"
               value={taskId}
-              onChange={(e) => setTaskId(e.target.value)}
+              onChange={(e) => handleTaskIdChange(e.target.value)}
               placeholder="Paste task UUID here"
               className="w-full border-[3px] border-black dark:border-zinc-700 px-3 py-2 text-sm font-mono focus:outline-none focus:bg-brutalist-yellow focus:text-black dark:bg-zinc-900 dark:text-zinc-100"
             />
           </div>
+
+          {/* Notes + repeat toggle */}
           <div>
-            <label htmlFor="notes" className="block text-xs font-bold uppercase tracking-widest mb-2">
-              NOTES (OPTIONAL)
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label
+                htmlFor={repeatNote ? undefined : 'notes'}
+                className="text-xs font-bold uppercase tracking-widest dark:text-zinc-100"
+              >
+                NOTES {repeatNote ? '' : '(OPTIONAL)'}
+              </label>
+              <button
+                type="button"
+                onClick={toggleRepeat}
+                className={`text-xs font-bold uppercase tracking-widest border-[3px] px-2 py-0.5 btn-brutal ${
+                  repeatNote
+                    ? 'border-black bg-black text-brutalist-yellow'
+                    : 'border-black dark:border-zinc-600 bg-white dark:bg-zinc-900 dark:text-zinc-100'
+                }`}
+                title={repeatNote ? 'Repeating last note — click to disable' : 'Click to repeat the same note each session'}
+              >
+                {repeatNote ? 'REPEAT: ON' : 'REPEAT: OFF'}
+              </button>
+            </div>
             <textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
+              disabled={repeatNote}
               rows={3}
-              placeholder="What are you working on?"
-              className="w-full border-[3px] border-black dark:border-zinc-700 px-3 py-2 text-sm resize-none focus:outline-none focus:bg-brutalist-yellow focus:text-black"
+              placeholder={repeatNote ? '' : 'What are you working on?'}
+              className={`w-full border-[3px] border-black dark:border-zinc-700 px-3 py-2 text-sm resize-none focus:outline-none dark:bg-zinc-900 dark:text-zinc-100 ${
+                repeatNote
+                  ? 'opacity-60 cursor-not-allowed bg-zinc-100 dark:bg-zinc-800'
+                  : 'focus:bg-brutalist-yellow focus:text-black'
+              }`}
             />
           </div>
 
-          {recentNotes.length > 0 && (
+          {/* Recent note suggestions — hidden when repeat mode is on */}
+          {!repeatNote && recentNotes.length > 0 && (
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">
                 Recent

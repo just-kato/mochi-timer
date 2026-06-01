@@ -41,6 +41,10 @@ export function TodaySessions({ initialSessions, timezone = 'America/New_York' }
   const [addingSession, setAddingSession] = useState(false)
   const isToday = selectedDate === todayInTz
 
+  const sorted = [...sessions].sort(
+    (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+  )
+
   // Sync sessions when server pushes new data (e.g. after router.refresh() following stop/delete).
   // React's recommended pattern: update state during render rather than in an effect.
   if (prevInitialSessions !== initialSessions) {
@@ -152,7 +156,7 @@ export function TodaySessions({ initialSessions, timezone = 'America/New_York' }
       {!loading && sessions.length > 0 && (
         <>
           <ul className="border-[3px] border-black dark:border-zinc-700 max-h-44 sm:max-h-80 overflow-y-auto">
-            {sessions.map((session) => (
+            {sorted.map((session) => (
               <SessionItem
                 key={session.id}
                 session={session}

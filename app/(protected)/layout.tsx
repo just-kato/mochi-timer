@@ -14,12 +14,21 @@ export default async function ProtectedLayout({
     redirect('/login')
   }
 
-  // Ensure a User row exists for password-login users who bypass /auth/callback.
+  // Ensure a User row exists. Must include all non-nullable columns because
+  // updatedAt has no DB-level default (Prisma manages it client-side).
   const serviceClient = createServiceClient()
+  const now = new Date().toISOString()
   await serviceClient.from('User').upsert({
     id: user.id,
     email: user.email!,
     role: (user.user_metadata?.role as string) ?? 'user',
+    hourlyRate: 0,
+    payPeriodStart: 1,
+    emailSummary: true,
+    timezone: 'America/New_York',
+    inviteCount: 0,
+    createdAt: now,
+    updatedAt: now,
   }, { onConflict: 'id', ignoreDuplicates: true })
 
   return (

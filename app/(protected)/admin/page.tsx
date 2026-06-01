@@ -1,14 +1,58 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { getAllUsers } from '@/lib/db/users'
 import { UserList } from '@/components/admin/UserList'
 import { InviteForm } from '@/components/admin/InviteForm'
+import type { PendingInvite } from '@/lib/types/admin'
 
 export default async function AdminPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const users = await getAllUsers()
+  const serviceClient = createServiceClient()
+  const [users, { data: authData }] = await Promise.all([
+    getAllUsers(),
+    serviceClient.auth.admin.listUsers(),
+  ])
+
+  const userTableIds = new Set(users.map((u) => u.id))
+
+  // Pending = invited but email not confirmed yet
+  const pendingInvites: PendingInvite[] = (authData?.users ?? [])
+    .filter((u) => u.invited_at && !u.email_confirmed_at)
+    .map((u) => ({ id: u.id, email: u.email ?? '', invitedAt: u.invited_at! }))
+
+  // Confirmed in auth but missing a User row — create rows now so they appear
+  const missingUsers = (authData?.users ?? []).filter(
+    (u) => u.email_confirmed_at && !userTableIds.has(u.id)
+  )
+  if (missingUsers.length > 0) {
+    const now = new Date().toISOString()
+    await serviceClient.from('User').upsert(
+      missingUsers.map((u) => ({
+        id: u.id,
+        email: u.email ?? '',
+        role: (u.user_metadata?.role as string) ?? 'user',
+        hourlyRate: 0,
+        payPeriodStart: 1,
+        emailSummary: true,
+        timezone: 'America/New_York',
+        inviteCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      })),
+      { onConflict: 'id', ignoreDuplicates: true }
+    )
+    // Re-fetch so the list is complete
+    const { data: refreshed } = await serviceClient.from('User').select().order('createdAt', { ascending: true })
+    if (refreshed) users.splice(0, users.length, ...refreshed.map((r) => ({
+      id: r.id, email: r.email, role: r.role, hourlyRate: r.hourlyRate,
+      payPeriodStart: r.payPeriodStart, emailSummary: r.emailSummary,
+      timezone: r.timezone, inviteCount: r.inviteCount,
+      inviteWindowStart: r.inviteWindowStart ? new Date(r.inviteWindowStart) : null,
+      createdAt: new Date(r.createdAt), updatedAt: new Date(r.updatedAt),
+    })))
+  }
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -22,7 +66,7 @@ export default async function AdminPage() {
         <h2 className="text-xs font-bold uppercase tracking-widest mb-4">
           USERS ({users.length})
         </h2>
-        <UserList users={users} currentUserId={user.id} />
+        <UserList users={users} pendingInvites={pendingInvites} currentUserId={user.id} />
       </div>
     </div>
   )

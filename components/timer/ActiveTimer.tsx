@@ -8,9 +8,10 @@ import { useOnlineStatus } from '@/lib/hooks/useOnlineStatus'
 import { toast } from '@/components/shared/Toast'
 import type { LocalSession } from '@/lib/indexeddb/client'
 
-const LS_TASK_ID   = 'mochi-last-task-id'
-const LS_LAST_NOTE = 'mochi-last-note'
-const LS_REPEAT    = 'mochi-repeat-note'
+const LS_TASK_ID      = 'mochi-last-task-id'
+const LS_LAST_NOTE    = 'mochi-last-note'
+const LS_REPEAT       = 'mochi-repeat-note'
+const LS_HIDDEN_NOTES = 'mochi-hidden-notes'
 
 interface ActiveTimerProps {
   initialSession: LocalSession | null
@@ -22,6 +23,7 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
   const [notes, setNotes]           = useState('')
   const [repeatNote, setRepeatNote] = useState(false)
   const [savedNote, setSavedNote]   = useState('')
+  const [hiddenNotes, setHiddenNotes] = useState<Set<string>>(new Set())
 
   // Load persisted values after mount (avoids SSR mismatch)
   useEffect(() => {
@@ -30,15 +32,26 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
     const storedTaskId = initialSession ? (localStorage.getItem(LS_TASK_ID) ?? '') : ''
     const storedNote   = localStorage.getItem(LS_LAST_NOTE) ?? ''
     const repeatOn     = localStorage.getItem(LS_REPEAT) === 'true'
+    const hidden       = JSON.parse(localStorage.getItem(LS_HIDDEN_NOTES) ?? '[]') as string[]
     setTaskId(storedTaskId)
     setSavedNote(storedNote)
     setRepeatNote(repeatOn)
+    setHiddenNotes(new Set(hidden))
     if (repeatOn) setNotes(storedNote)
   }, [])
 
   const router = useRouter()
   const online = useOnlineStatus()
   const { running, paused, elapsed, loading, error, start, stop, pause, resume } = useTimer(initialSession)
+
+  function hideNote(note: string) {
+    setHiddenNotes((prev) => {
+      const next = new Set(prev)
+      next.add(note)
+      localStorage.setItem(LS_HIDDEN_NOTES, JSON.stringify([...next]))
+      return next
+    })
+  }
 
   function handleTaskIdChange(value: string) {
     setTaskId(value)
@@ -201,25 +214,34 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
           </div>
 
           {/* Recent note suggestions — hidden when repeat mode is on */}
-          {!repeatNote && recentNotes.length > 0 && (
+          {!repeatNote && recentNotes.filter((n) => !hiddenNotes.has(n)).length > 0 && (
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">
                 Recent
               </p>
               <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto">
-                {recentNotes.map((note) => (
-                  <button
-                    key={note}
-                    type="button"
-                    onClick={() => setNotes(note)}
-                    className={`px-3 py-1.5 text-xs font-bold border-2 border-black dark:border-zinc-600 tracking-wide transition-none ${
-                      notes === note
-                        ? 'bg-black text-brutalist-yellow'
-                        : 'bg-white dark:bg-zinc-900 text-black dark:text-zinc-100 hover:bg-brutalist-yellow hover:text-black'
-                    }`}
-                  >
-                    {note.length > 32 ? `${note.slice(0, 32)}…` : note}
-                  </button>
+                {recentNotes.filter((n) => !hiddenNotes.has(n)).map((note) => (
+                  <div key={note} className="group relative inline-flex">
+                    <button
+                      type="button"
+                      onClick={() => setNotes(note)}
+                      className={`pr-6 px-3 py-1.5 text-xs font-bold border-2 border-black dark:border-zinc-600 tracking-wide transition-none ${
+                        notes === note
+                          ? 'bg-black text-brutalist-yellow'
+                          : 'bg-white dark:bg-zinc-900 text-black dark:text-zinc-100 hover:bg-brutalist-yellow hover:text-black'
+                      }`}
+                    >
+                      {note.length > 32 ? `${note.slice(0, 32)}…` : note}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => hideNote(note)}
+                      aria-label="Remove suggestion"
+                      className="min-h-0! min-w-0! absolute right-1 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-400 hover:text-brutalist-red opacity-0 group-hover:opacity-100"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>

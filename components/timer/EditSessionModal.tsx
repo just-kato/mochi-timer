@@ -151,7 +151,7 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
       role="dialog"
       aria-modal="true"
       aria-label="Edit session"
-      onClick={onClose}
+      onClick={() => { if (taskId.trim()) onClose() }}
     >
       <div
         className="w-full max-w-md border-[3px] border-black bg-white dark:bg-zinc-900 shadow-brutal"
@@ -160,7 +160,7 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
         {/* Header */}
         <div className="bg-black px-4 py-3 flex items-center justify-between">
           <p className="text-xs font-bold uppercase tracking-widest text-brutalist-yellow">Edit Session</p>
-          <button type="button" onClick={onClose} className="text-brutalist-yellow text-sm font-bold hover:opacity-70" aria-label="Close">
+          <button type="button" onClick={() => { if (taskId.trim()) onClose() }} disabled={!taskId.trim()} className="text-brutalist-yellow text-sm font-bold hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Close">
             ✕
           </button>
         </div>

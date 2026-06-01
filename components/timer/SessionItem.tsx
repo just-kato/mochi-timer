@@ -97,6 +97,33 @@ export function SessionItem({ session, onEdit, onDeleted, onUpdated, showDate = 
               ) : addingUuid ? (
                 // Inline UUID input with paste button
                 <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const text = await navigator.clipboard.readText()
+                        setUuidInput(text.trim())
+                      } catch { /* clipboard permission denied */ }
+                    }}
+                    className="btn-brutal min-h-0! min-w-0! h-6.25 shrink-0 border-[3px] border-black bg-black text-brutalist-yellow px-2 py-0.5 text-xs font-bold uppercase"
+                  >
+                    Paste
+                  </button>
+                  <button
+                    type="button"
+                    disabled={savingUuid}
+                    onClick={() => {
+                      if (uuidInput.trim()) void handleSaveUuid()
+                      else { setAddingUuid(false); setUuidInput('') }
+                    }}
+                    className={`btn-brutal min-h-0! min-w-0! h-6.25 shrink-0 border-[3px] px-2 text-xs font-bold disabled:opacity-40 ${
+                      uuidInput.trim()
+                        ? 'border-brutalist-green bg-brutalist-green text-black'
+                        : 'border-brutalist-red bg-white dark:bg-zinc-900 text-brutalist-red'
+                    }`}
+                  >
+                    {savingUuid ? '…' : uuidInput.trim() ? '✓' : '✕'}
+                  </button>
                   <input
                     type="text"
                     autoFocus
@@ -106,42 +133,15 @@ export function SessionItem({ session, onEdit, onDeleted, onUpdated, showDate = 
                     placeholder="UUID…"
                     className="flex-1 min-w-0 border-[3px] border-black dark:border-zinc-600 px-2 py-0.5 text-xs font-mono focus:outline-none focus:bg-brutalist-yellow focus:text-black dark:bg-zinc-900 dark:text-zinc-100"
                   />
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        const text = await navigator.clipboard.readText()
-                        setUuidInput(text.trim())
-                      } catch { /* clipboard permission denied */ }
-                    }}
-                    className="btn-brutal shrink-0 border-[3px] border-black dark:border-zinc-600 bg-white dark:bg-zinc-900 dark:text-zinc-100 px-2 py-0.5 text-xs font-bold uppercase"
-                  >
-                    Paste
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleSaveUuid()}
-                    disabled={savingUuid || !uuidInput.trim()}
-                    className="btn-brutal shrink-0 border-[3px] border-black bg-black text-brutalist-yellow px-2 py-0.5 text-xs font-bold disabled:opacity-40"
-                  >
-                    {savingUuid ? '…' : '✓'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setAddingUuid(false); setUuidInput('') }}
-                    className="shrink-0 text-xs font-bold text-zinc-400 hover:text-black dark:hover:text-zinc-100"
-                  >
-                    ✕
-                  </button>
                 </div>
               ) : (
-                // Red "ADD UUID" pill — compact
+                // Red pill — same height/width as the UUID chip
                 <button
                   type="button"
                   onClick={() => setAddingUuid(true)}
-                  className="btn-brutal inline-flex items-center border-2 border-brutalist-red text-brutalist-red px-1.5 py-px text-[10px] font-bold uppercase tracking-wide hover:bg-brutalist-red hover:text-white"
+                  className="btn-brutal inline-flex items-center justify-center border-2 border-brutalist-red text-brutalist-red px-2 py-0.5 text-[10px] leading-none font-bold uppercase tracking-wide min-h-0! min-w-0! h-6.25 hover:bg-brutalist-red hover:text-white"
                 >
-                  + UUID
+                  + Add UUID
                 </button>
               )}
             </div>

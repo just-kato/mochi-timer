@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { User } from '@prisma/client'
 import type { PendingInvite } from '@/lib/types/admin'
 import { SettingsForm } from '@/components/settings/SettingsForm'
@@ -41,7 +41,20 @@ export function ProfileTabs({
   users,
   pendingInvites,
 }: ProfileTabsProps) {
-  const [activeTab, setActiveTab] = useState<'settings' | 'history' | 'admin'>('settings')
+  type Tab = 'settings' | 'history' | 'admin'
+  const [activeTab, setActiveTab] = useState<Tab>('settings')
+
+  useEffect(() => {
+    const stored = localStorage.getItem('profile-active-tab') as Tab | null
+    if (stored === 'settings' || stored === 'history' || (stored === 'admin' && isAdmin)) {
+      setActiveTab(stored)
+    }
+  }, [isAdmin])
+
+  function handleTabChange(tab: Tab) {
+    setActiveTab(tab)
+    localStorage.setItem('profile-active-tab', tab)
+  }
 
   return (
     <div className="border-[3px] border-black dark:border-zinc-700 shadow-brutal dark:bg-zinc-900">
@@ -50,7 +63,7 @@ export function ProfileTabs({
       <div className="flex border-b-[3px] border-black">
         <button
           type="button"
-          onClick={() => setActiveTab('settings')}
+          onClick={() => handleTabChange('settings')}
           className={`flex-1 py-3 px-4 text-xs font-bold uppercase tracking-widest transition-none border-r-[3px] border-black ${
             activeTab === 'settings'
               ? 'bg-black text-brutalist-yellow'
@@ -61,7 +74,7 @@ export function ProfileTabs({
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('history')}
+          onClick={() => handleTabChange('history')}
           className={`flex-1 py-3 px-4 text-xs font-bold uppercase tracking-widest transition-none ${
             isAdmin ? 'border-r-[3px] border-black' : ''
           } ${
@@ -75,7 +88,7 @@ export function ProfileTabs({
         {isAdmin && (
           <button
             type="button"
-            onClick={() => setActiveTab('admin')}
+            onClick={() => handleTabChange('admin')}
             className={`flex-1 py-3 px-4 text-xs font-bold uppercase tracking-widest transition-none ${
               activeTab === 'admin'
                 ? 'bg-black text-brutalist-yellow'

@@ -83,7 +83,7 @@ export function UserList({ users, pendingInvites = [], currentUserId }: UserList
               <div>
                 <p className="text-sm font-bold">{invite.email}</p>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="text-xs font-bold uppercase tracking-widest bg-brutalist-yellow px-2 py-0.5">
+                  <span className="text-xs font-bold uppercase tracking-widest bg-brutalist-yellow text-black px-2 py-0.5">
                     PENDING
                   </span>
                   <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">

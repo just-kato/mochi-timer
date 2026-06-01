@@ -19,16 +19,17 @@ export default async function ProfilePage() {
     const serviceClient = createServiceClient()
     const [allUsers, { data: authData }] = await Promise.all([
       getAllUsers(),
-      serviceClient.auth.admin.listUsers(),
+      serviceClient.auth.admin.listUsers({ perPage: 1000 }),
     ])
     users = allUsers
+
+    const userTableIds = new Set(allUsers.map((u) => u.id))
+    // Pending = in auth but not yet in the User table (hasn't finished onboarding)
+    // Use User table membership as the signal — not email_confirmed_at, which
+    // Supabase may set immediately on invite in some project configurations.
     pendingInvites = (authData?.users ?? [])
-      .filter((u) => u.invited_at && !u.email_confirmed_at)
-      .map((u) => ({
-        id: u.id,
-        email: u.email ?? '',
-        invitedAt: u.invited_at!,
-      }))
+      .filter((u) => !userTableIds.has(u.id) && !u.email_confirmed_at)
+      .map((u) => ({ id: u.id, email: u.email ?? '', invitedAt: u.invited_at ?? u.created_at! }))
   }
 
   return (

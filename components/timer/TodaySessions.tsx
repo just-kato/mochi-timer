@@ -39,7 +39,13 @@ export function TodaySessions({ initialSessions, timezone = 'America/New_York' }
   const [loading, setLoading] = useState(false)
   const [editingSession, setEditingSession] = useState<Session | null>(null)
   const [addingSession, setAddingSession] = useState(false)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const isToday = selectedDate === todayInTz
+
+  const sorted = [...sessions].sort((a, b) => {
+    const diff = new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    return sortDir === 'asc' ? diff : -diff
+  })
 
   // Sync sessions when server pushes new data (e.g. after router.refresh() following stop/delete).
   // React's recommended pattern: update state during render rather than in an effect.
@@ -124,6 +130,20 @@ export function TodaySessions({ initialSessions, timezone = 'America/New_York' }
           aria-label="Next day"
           className="btn-brutal w-7 h-7 flex items-center justify-center border-[3px] border-black dark:border-zinc-600 bg-white dark:bg-zinc-900 text-xs font-bold dark:text-zinc-100 disabled:opacity-30 shrink-0"
         >→</button>
+        <div className="flex border-[3px] border-black dark:border-zinc-600 shrink-0">
+          <button
+            type="button"
+            onClick={() => setSortDir('asc')}
+            aria-label="Sort oldest first"
+            className={`w-7 h-7 flex items-center justify-center text-xs font-bold border-r-[3px] border-black dark:border-zinc-600 ${sortDir === 'asc' ? 'bg-black text-white dark:bg-zinc-100 dark:text-black' : 'bg-white dark:bg-zinc-900 text-black dark:text-zinc-100'}`}
+          >↑</button>
+          <button
+            type="button"
+            onClick={() => setSortDir('desc')}
+            aria-label="Sort newest first"
+            className={`w-7 h-7 flex items-center justify-center text-xs font-bold ${sortDir === 'desc' ? 'bg-black text-white dark:bg-zinc-100 dark:text-black' : 'bg-white dark:bg-zinc-900 text-black dark:text-zinc-100'}`}
+          >↓</button>
+        </div>
       </div>
 
       {loading && (
@@ -152,7 +172,7 @@ export function TodaySessions({ initialSessions, timezone = 'America/New_York' }
       {!loading && sessions.length > 0 && (
         <>
           <ul className="border-[3px] border-black dark:border-zinc-700 max-h-44 sm:max-h-80 overflow-y-auto">
-            {sessions.map((session) => (
+            {sorted.map((session) => (
               <SessionItem
                 key={session.id}
                 session={session}

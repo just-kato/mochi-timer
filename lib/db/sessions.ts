@@ -93,9 +93,53 @@ export async function createSession(
 export async function stopSession(
   id: string,
   userId: string,
-  endTime: Date
+  endTime: Date,
+  startTime?: Date
 ): Promise<Session> {
   const supabase = createServiceClient()
+
+  if (startTime) {
+    // Happy path: single atomic UPDATE — no prior SELECT needed.
+    // The .eq('userId') + .is('endTime', null) conditions are evaluated by
+    // Postgres in one statement, eliminating any TOCTOU race on double-stop.
+    const duration = durationSeconds(startTime, endTime)
+    const { data: updated, error: updateError } = await supabase
+      .from('Session')
+      .update({ endTime: endTime.toISOString(), duration, synced: true })
+      .eq('id', id)
+      .eq('userId', userId)
+      .is('endTime', null)
+      .select()
+      .maybeSingle()
+
+    if (updateError) throw new Error(updateError.message)
+
+    if (updated) return mapSession(updated as SupabaseSessionRow)
+
+    // 0 rows matched — find out why with a single diagnostic read
+    const { data: existing } = await supabase
+      .from('Session')
+      .select('userId, endTime')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (!existing) {
+      // Session never reached the DB (start() failed silently) — create and stop in one insert
+      const { data: created, error: createError } = await supabase
+        .from('Session')
+        .insert({ id, userId, startTime: startTime.toISOString(), endTime: endTime.toISOString(), duration, synced: true })
+        .select()
+        .single()
+      if (createError) throw new Error(createError.message)
+      return mapSession(created as SupabaseSessionRow)
+    }
+    const existingRow = existing as Pick<SupabaseSessionRow, 'userId' | 'endTime'>
+    if (existingRow.userId !== userId) throw new Error('Forbidden')
+    if (existingRow.endTime !== null) throw new Error('Session already stopped')
+    throw new Error('Stop failed unexpectedly')
+  }
+
+  // Fallback path (no startTime supplied): two round trips, legacy behaviour
   const { data: session, error: fetchError } = await supabase
     .from('Session')
     .select()

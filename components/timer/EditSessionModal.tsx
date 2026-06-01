@@ -101,14 +101,21 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
 
     if (!taskId.trim()) { setError('Task ID is required'); return }
 
+    // Only include times in the payload if the user actually changed them.
+    // Comparing at second precision since datetime-local strips milliseconds.
+    const origStart = new Date(session.startTime)
+    const origEnd = session.endTime ? new Date(session.endTime) : null
+    const startChanged = Math.floor(finalStart.getTime() / 1000) !== Math.floor(origStart.getTime() / 1000)
+    const endChanged = origEnd === null || Math.floor(finalEnd.getTime() / 1000) !== Math.floor(origEnd.getTime() / 1000)
+
     setLoading(true)
     try {
       const res = await fetch(`/api/sessions/${session.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          startTime: finalStart.toISOString(),
-          endTime: finalEnd.toISOString(),
+          ...(startChanged ? { startTime: finalStart.toISOString() } : {}),
+          ...(endChanged ? { endTime: finalEnd.toISOString() } : {}),
           notes: notes.trim() || null,
           taskId: taskId.trim(),
         }),

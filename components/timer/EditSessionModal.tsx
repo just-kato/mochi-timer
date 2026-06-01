@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import type { Session } from '@prisma/client'
 import { formatDateTimeLocal } from '@/lib/utils/format'
+import { toast } from '@/components/shared/Toast'
 
 type EditMode = 'times' | 'duration'
 type Anchor = 'end' | 'start'
@@ -151,7 +152,7 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
       role="dialog"
       aria-modal="true"
       aria-label="Edit session"
-      onClick={() => { if (taskId.trim()) onClose() }}
+      onClick={() => { if (taskId.trim()) onClose(); else toast({ message: 'Enter a Task ID before closing', type: 'error' }) }}
     >
       <div
         className="w-full max-w-md border-[3px] border-black bg-white dark:bg-zinc-900 shadow-brutal"
@@ -160,7 +161,7 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
         {/* Header */}
         <div className="bg-black px-4 py-3 flex items-center justify-between">
           <p className="text-xs font-bold uppercase tracking-widest text-brutalist-yellow">Edit Session</p>
-          <button type="button" onClick={() => { if (taskId.trim()) onClose() }} disabled={!taskId.trim()} className="text-brutalist-yellow text-sm font-bold hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Close">
+          <button type="button" onClick={() => { if (taskId.trim()) onClose(); else toast({ message: 'Enter a Task ID before closing', type: 'error' }) }} disabled={!taskId.trim()} className="text-brutalist-yellow text-sm font-bold hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Close">
             ✕
           </button>
         </div>

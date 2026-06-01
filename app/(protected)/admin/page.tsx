@@ -16,22 +16,23 @@ export default async function AdminPage() {
     serviceClient.auth.admin.listUsers({ perPage: 1000 }),
   ])
 
+  const allAuthUsers = authData?.users ?? []
+  // Anyone in auth but NOT yet in the User table hasn't finished onboarding.
+  // We use User table membership as the source of truth — not email_confirmed_at,
+  // because Supabase may set that flag immediately on invite in some project configs.
   const userTableIds = new Set(users.map((u) => u.id))
+  const notInUserTable = allAuthUsers.filter((u) => !userTableIds.has(u.id))
 
-  // Pending = any auth user who hasn't confirmed their email yet
-  // (invited_at may be null for users created directly, so fall back to created_at)
-  const pendingInvites: PendingInvite[] = (authData?.users ?? [])
+  // Split: confirmed (auto-create User row) vs unconfirmed (show as pending)
+  const needsUserRow = notInUserTable.filter((u) => u.email_confirmed_at)
+  const pendingInvites: PendingInvite[] = notInUserTable
     .filter((u) => !u.email_confirmed_at)
     .map((u) => ({ id: u.id, email: u.email ?? '', invitedAt: u.invited_at ?? u.created_at! }))
 
-  // Confirmed in auth but missing a User row — create rows now so they appear
-  const missingUsers = (authData?.users ?? []).filter(
-    (u) => u.email_confirmed_at && !userTableIds.has(u.id)
-  )
-  if (missingUsers.length > 0) {
+  if (needsUserRow.length > 0) {
     const now = new Date().toISOString()
     await serviceClient.from('User').upsert(
-      missingUsers.map((u) => ({
+      needsUserRow.map((u) => ({
         id: u.id,
         email: u.email ?? '',
         role: (u.user_metadata?.role as string) ?? 'user',

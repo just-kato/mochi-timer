@@ -4,13 +4,14 @@ interface TimerButtonProps {
   running: boolean
   paused: boolean
   loading: boolean
+  canStop?: boolean
   onStart: () => void
   onStop: () => void
   onPause: () => void
   onResume: () => void
 }
 
-export function TimerButton({ running, paused, loading, onStart, onStop, onPause, onResume }: TimerButtonProps) {
+export function TimerButton({ running, paused, loading, canStop = true, onStart, onStop, onPause, onResume }: TimerButtonProps) {
   if (!running) {
     return (
       <button
@@ -38,9 +39,10 @@ export function TimerButton({ running, paused, loading, onStart, onStop, onPause
       </button>
       <button
         onClick={onStop}
-        disabled={loading}
-        className="w-32 h-32 text-sm font-bold uppercase tracking-widest border-[3px] border-black bg-brutalist-yellow text-black btn-brutal shadow-brutal"
+        disabled={loading || !canStop}
+        className="w-32 h-32 text-sm font-bold uppercase tracking-widest border-[3px] border-black bg-brutalist-yellow text-black btn-brutal shadow-brutal disabled:opacity-30 disabled:cursor-not-allowed"
         aria-label="Stop timer"
+        title={!canStop ? 'Enter a Task ID to stop the timer' : undefined}
       >
         {loading ? '▋' : 'STOP'}
       </button>

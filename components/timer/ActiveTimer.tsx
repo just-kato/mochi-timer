@@ -14,13 +14,15 @@ interface ActiveTimerProps {
 
 export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerProps) {
   const [notes, setNotes] = useState('')
+  const [taskId, setTaskId] = useState('')
   const router = useRouter()
   const online = useOnlineStatus()
   const { running, paused, elapsed, loading, error, start, stop, pause, resume } = useTimer(initialSession)
 
   async function handleStop() {
-    await stop(notes)
+    await stop(notes, taskId.trim())
     setNotes('')
+    setTaskId('')
     if (online) router.refresh()
   }
 
@@ -54,6 +56,7 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
         running={running}
         paused={paused}
         loading={loading}
+        canStop={!!taskId.trim()}
         onStart={start}
         onStop={handleStop}
         onPause={pause}
@@ -62,6 +65,19 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
 
       {running && (
         <div className="w-full space-y-3">
+          <div>
+            <label htmlFor="task-id" className="block text-xs font-bold uppercase tracking-widest mb-2">
+              TASK ID <span className="text-brutalist-red">*</span>
+            </label>
+            <input
+              id="task-id"
+              type="text"
+              value={taskId}
+              onChange={(e) => setTaskId(e.target.value)}
+              placeholder="Paste task UUID here"
+              className="w-full border-[3px] border-black dark:border-zinc-700 px-3 py-2 text-sm font-mono focus:outline-none focus:bg-brutalist-yellow focus:text-black dark:bg-zinc-900 dark:text-zinc-100"
+            />
+          </div>
           <div>
             <label htmlFor="notes" className="block text-xs font-bold uppercase tracking-widest mb-2">
               NOTES (OPTIONAL)

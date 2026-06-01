@@ -29,6 +29,7 @@ model Session {
   endTime   DateTime?
   duration  Int?
   notes     String?
+  taskId    String?
   synced    Boolean   @default(false)
   createdAt DateTime  @default(now())
 

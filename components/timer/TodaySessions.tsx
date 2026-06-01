@@ -47,7 +47,11 @@ export function TodaySessions({ initialSessions, timezone = 'America/New_York', 
   )
 
   const totalSeconds = sessions.reduce((sum, s) => sum + (s.duration ?? 0), 0)
-  const estimatedEarnings = hourlyRate > 0 ? (totalSeconds / 3600) * hourlyRate : null
+  const totalHours = totalSeconds / 3600
+  const hoursDisplay = totalSeconds > 0
+    ? totalHours >= 1 ? `${totalHours.toFixed(1)}h` : `${Math.round(totalSeconds / 60)}m`
+    : null
+  const estimatedEarnings = hourlyRate > 0 && totalSeconds > 0 ? totalHours * hourlyRate : null
 
   // Sync sessions when server pushes new data (e.g. after router.refresh() following stop/delete).
   // React's recommended pattern: update state during render rather than in an effect.
@@ -134,12 +138,17 @@ export function TodaySessions({ initialSessions, timezone = 'America/New_York', 
             className="btn-brutal w-7 h-7 flex items-center justify-center border-[3px] border-black dark:border-zinc-600 bg-white dark:bg-zinc-900 text-xs font-bold dark:text-zinc-100 disabled:opacity-30 shrink-0"
           >→</button>
         </div>
-        {estimatedEarnings !== null && sessions.length > 0 && (
+        {(hoursDisplay || estimatedEarnings !== null) && sessions.length > 0 && (
           <p className="text-center text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mt-1.5">
-            Est. earned&nbsp;&nbsp;
-            <span className="text-black dark:text-zinc-100">
-              ${estimatedEarnings.toFixed(2)}
-            </span>
+            {hoursDisplay && (
+              <span className="text-black dark:text-zinc-100">{hoursDisplay}</span>
+            )}
+            {hoursDisplay && estimatedEarnings !== null && (
+              <span className="mx-2">·</span>
+            )}
+            {estimatedEarnings !== null && (
+              <>Est. earned <span className="text-black dark:text-zinc-100">${estimatedEarnings.toFixed(2)}</span></>
+            )}
           </p>
         )}
       </div>

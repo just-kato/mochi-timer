@@ -49,6 +49,7 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
     session.endTime ? formatDateTimeLocal(new Date(session.endTime)) : ''
   )
   const [notes, setNotes] = useState(session.notes ?? '')
+  const [taskId, setTaskId] = useState(session.taskId ?? '')
   const [duration, setDuration] = useState(session.duration ? secondsToHHMM(session.duration) : '')
   const [anchor, setAnchor] = useState<Anchor>('end')
   const [loading, setLoading] = useState(false)
@@ -98,6 +99,8 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
 
     if (finalEnd <= finalStart) { setError('End time must be after start time'); return }
 
+    if (!taskId.trim()) { setError('Task ID is required'); return }
+
     setLoading(true)
     try {
       const res = await fetch(`/api/sessions/${session.id}`, {
@@ -107,6 +110,7 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
           startTime: finalStart.toISOString(),
           endTime: finalEnd.toISOString(),
           notes: notes.trim() || null,
+          taskId: taskId.trim(),
         }),
       })
       if (!res.ok) {
@@ -275,6 +279,21 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
             </>
           )}
 
+          {/* Task ID — always visible, required */}
+          <div>
+            <label htmlFor="edit-task-id" className="block text-xs font-bold uppercase tracking-widest mb-2 dark:text-zinc-100">
+              Task ID <span className="text-brutalist-red">*</span>
+            </label>
+            <input
+              id="edit-task-id"
+              type="text"
+              value={taskId}
+              onChange={(e) => setTaskId(e.target.value)}
+              placeholder="Paste task UUID"
+              className={`${inputClass} font-mono`}
+            />
+          </div>
+
           {/* Notes — always visible */}
           <div>
             <label htmlFor="edit-notes" className="block text-xs font-bold uppercase tracking-widest mb-2 dark:text-zinc-100">
@@ -299,7 +318,7 @@ export function EditSessionModal({ session, onClose, onSaved }: EditSessionModal
             <button type="button" onClick={onClose} disabled={loading} className="flex-1 py-3 text-xs font-bold uppercase tracking-widest border-[3px] border-black bg-white dark:bg-zinc-900 dark:text-zinc-100 disabled:opacity-50">
               Cancel
             </button>
-            <button type="submit" disabled={loading} className="flex-1 py-3 text-xs font-bold uppercase tracking-widest border-[3px] border-black bg-black text-brutalist-yellow disabled:opacity-50">
+            <button type="submit" disabled={loading || !taskId.trim()} className="flex-1 py-3 text-xs font-bold uppercase tracking-widest border-[3px] border-black bg-black text-brutalist-yellow disabled:opacity-50">
               {loading ? 'Saving…' : 'Save'}
             </button>
           </div>

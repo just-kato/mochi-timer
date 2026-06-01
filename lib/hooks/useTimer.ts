@@ -90,7 +90,7 @@ export function useTimer(initialSession: LocalSession | null = null) {
     setState((s) => ({ ...s, paused: false }))
   }, [state.running, state.paused])
 
-  const stop = useCallback(async (notes?: string) => {
+  const stop = useCallback(async (notes?: string, taskId?: string) => {
     if (!state.sessionId || !state.startTime) return
     setState((s) => ({ ...s, loading: true, error: null }))
     const realEndTime = new Date()
@@ -118,6 +118,7 @@ export function useTimer(initialSession: LocalSession | null = null) {
           body: JSON.stringify({
             endTime: effectiveEndTime.toISOString(),
             startTime: state.startTime.toISOString(),
+            ...(taskId ? { taskId } : {}),
           }),
         })
         clearTimeout(timeout)

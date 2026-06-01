@@ -9,6 +9,7 @@ interface SupabaseSessionRow {
   endTime: string | null
   duration: number | null
   notes: string | null
+  taskId: string | null
   synced: boolean
   createdAt: string
 }
@@ -27,6 +28,7 @@ function mapSession(row: SupabaseSessionRow): Session {
     endTime: row.endTime ? toUTCDate(row.endTime) : null,
     duration: row.duration,
     notes: row.notes,
+    taskId: row.taskId,
     synced: row.synced,
     createdAt: toUTCDate(row.createdAt),
   }
@@ -94,18 +96,17 @@ export async function stopSession(
   id: string,
   userId: string,
   endTime: Date,
-  startTime?: Date
+  startTime?: Date,
+  taskId?: string
 ): Promise<Session> {
   const supabase = createServiceClient()
+  const taskIdVal = taskId?.trim() || null
 
   if (startTime) {
-    // Happy path: single atomic UPDATE — no prior SELECT needed.
-    // The .eq('userId') + .is('endTime', null) conditions are evaluated by
-    // Postgres in one statement, eliminating any TOCTOU race on double-stop.
     const duration = durationSeconds(startTime, endTime)
     const { data: updated, error: updateError } = await supabase
       .from('Session')
-      .update({ endTime: endTime.toISOString(), duration, synced: true })
+      .update({ endTime: endTime.toISOString(), duration, synced: true, ...(taskIdVal ? { taskId: taskIdVal } : {}) })
       .eq('id', id)
       .eq('userId', userId)
       .is('endTime', null)
@@ -116,7 +117,6 @@ export async function stopSession(
 
     if (updated) return mapSession(updated as SupabaseSessionRow)
 
-    // 0 rows matched — find out why with a single diagnostic read
     const { data: existing } = await supabase
       .from('Session')
       .select('userId, endTime')
@@ -124,10 +124,9 @@ export async function stopSession(
       .maybeSingle()
 
     if (!existing) {
-      // Session never reached the DB (start() failed silently) — create and stop in one insert
       const { data: created, error: createError } = await supabase
         .from('Session')
-        .insert({ id, userId, startTime: startTime.toISOString(), endTime: endTime.toISOString(), duration, synced: true })
+        .insert({ id, userId, startTime: startTime.toISOString(), endTime: endTime.toISOString(), duration, taskId: taskIdVal, synced: true })
         .select()
         .single()
       if (createError) throw new Error(createError.message)
@@ -139,7 +138,7 @@ export async function stopSession(
     throw new Error('Stop failed unexpectedly')
   }
 
-  // Fallback path (no startTime supplied): two round trips, legacy behaviour
+  // Fallback path (no startTime supplied)
   const { data: session, error: fetchError } = await supabase
     .from('Session')
     .select()
@@ -154,7 +153,7 @@ export async function stopSession(
   const duration = durationSeconds(toUTCDate(row.startTime), endTime)
   const { data: updated, error: updateError } = await supabase
     .from('Session')
-    .update({ endTime: endTime.toISOString(), duration, synced: true })
+    .update({ endTime: endTime.toISOString(), duration, synced: true, ...(taskIdVal ? { taskId: taskIdVal } : {}) })
     .eq('id', id)
     .select()
     .single()
@@ -213,7 +212,7 @@ export async function getRecentNoteSuggestions(userId: string, limit = 8): Promi
 export async function updateSession(
   id: string,
   userId: string,
-  fields: { startTime?: Date; endTime?: Date; notes?: string | null }
+  fields: { startTime?: Date; endTime?: Date; notes?: string | null; taskId?: string | null }
 ): Promise<Session> {
   const supabase = createServiceClient()
   const { data: session, error: fetchError } = await supabase
@@ -237,6 +236,7 @@ export async function updateSession(
   if (fields.startTime !== undefined) updateData.startTime = fields.startTime.toISOString()
   if (fields.endTime !== undefined) updateData.endTime = fields.endTime?.toISOString() ?? null
   if (fields.notes !== undefined) updateData.notes = fields.notes
+  if (fields.taskId !== undefined) updateData.taskId = fields.taskId
   if (fields.startTime !== undefined || fields.endTime !== undefined) updateData.duration = duration
 
   const { data: updated, error: updateError } = await supabase

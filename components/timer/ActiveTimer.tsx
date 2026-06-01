@@ -25,7 +25,9 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
 
   // Load persisted values after mount (avoids SSR mismatch)
   useEffect(() => {
-    const storedTaskId = localStorage.getItem(LS_TASK_ID) ?? ''
+    // Only restore task ID if a session is actively running — it helps when switching
+    // tabs mid-session to look up a UUID. Once stopped it's cleared, so no stale carry-over.
+    const storedTaskId = initialSession ? (localStorage.getItem(LS_TASK_ID) ?? '') : ''
     const storedNote   = localStorage.getItem(LS_LAST_NOTE) ?? ''
     const repeatOn     = localStorage.getItem(LS_REPEAT) === 'true'
     setTaskId(storedTaskId)
@@ -78,6 +80,10 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
     }
 
     await stop(finalNotes, finalTaskId)
+
+    // Task ID never repeats — clear it after every stop
+    setTaskId('')
+    localStorage.removeItem(LS_TASK_ID)
 
     // Repeat mode: restore note for the next session; otherwise clear
     setNotes(repeatNote ? (localStorage.getItem(LS_LAST_NOTE) ?? '') : '')

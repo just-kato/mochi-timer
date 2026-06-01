@@ -110,9 +110,15 @@ export function useTimer(initialSession: LocalSession | null = null) {
         const res = await fetch(`/api/sessions/${state.sessionId}/stop`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ endTime: effectiveEndTime.toISOString() }),
+          body: JSON.stringify({
+            endTime: effectiveEndTime.toISOString(),
+            startTime: state.startTime.toISOString(),
+          }),
         })
-        if (!res.ok) throw new Error('Failed to stop session')
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({})) as { error?: string }
+          throw new Error(data.error ?? 'Failed to stop session')
+        }
       } catch (err) {
         setState((s) => ({
           ...s,

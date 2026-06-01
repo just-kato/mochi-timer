@@ -95,17 +95,29 @@ export function SessionItem({ session, onEdit, onDeleted, onUpdated, showDate = 
                   {localTaskId.slice(0, 8)}…
                 </span>
               ) : addingUuid ? (
-                // Inline UUID input
-                <div className="flex items-center gap-1.5">
+                // Inline UUID input with paste button
+                <div className="flex items-center gap-1">
                   <input
                     type="text"
                     autoFocus
                     value={uuidInput}
                     onChange={(e) => setUuidInput(e.target.value)}
                     onKeyDown={handleUuidKeyDown}
-                    placeholder="Paste UUID…"
+                    placeholder="UUID…"
                     className="flex-1 min-w-0 border-[3px] border-black dark:border-zinc-600 px-2 py-0.5 text-xs font-mono focus:outline-none focus:bg-brutalist-yellow focus:text-black dark:bg-zinc-900 dark:text-zinc-100"
                   />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const text = await navigator.clipboard.readText()
+                        setUuidInput(text.trim())
+                      } catch { /* clipboard permission denied */ }
+                    }}
+                    className="btn-brutal shrink-0 border-[3px] border-black dark:border-zinc-600 bg-white dark:bg-zinc-900 dark:text-zinc-100 px-2 py-0.5 text-xs font-bold uppercase"
+                  >
+                    Paste
+                  </button>
                   <button
                     type="button"
                     onClick={() => void handleSaveUuid()}
@@ -123,13 +135,13 @@ export function SessionItem({ session, onEdit, onDeleted, onUpdated, showDate = 
                   </button>
                 </div>
               ) : (
-                // Red "ADD UUID" pill
+                // Red "ADD UUID" pill — compact
                 <button
                   type="button"
                   onClick={() => setAddingUuid(true)}
-                  className="btn-brutal inline-flex items-center gap-1 border-2 border-brutalist-red text-brutalist-red px-2 py-0.5 text-xs font-bold uppercase tracking-widest hover:bg-brutalist-red hover:text-white"
+                  className="btn-brutal inline-flex items-center border-2 border-brutalist-red text-brutalist-red px-1.5 py-px text-[10px] font-bold uppercase tracking-wide hover:bg-brutalist-red hover:text-white"
                 >
-                  + ADD UUID
+                  + UUID
                 </button>
               )}
             </div>

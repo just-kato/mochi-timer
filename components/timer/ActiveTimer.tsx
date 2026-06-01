@@ -126,14 +126,28 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
             <label htmlFor="task-id" className="block text-xs font-bold uppercase tracking-widest mb-2 dark:text-zinc-100">
               TASK ID
             </label>
-            <input
-              id="task-id"
-              type="text"
-              value={taskId}
-              onChange={(e) => handleTaskIdChange(e.target.value)}
-              placeholder="Paste task UUID here"
-              className="w-full border-[3px] border-black dark:border-zinc-700 px-3 py-2 text-sm font-mono focus:outline-none focus:bg-brutalist-yellow focus:text-black dark:bg-zinc-900 dark:text-zinc-100"
-            />
+            <div className="flex gap-1.5">
+              <input
+                id="task-id"
+                type="text"
+                value={taskId}
+                onChange={(e) => handleTaskIdChange(e.target.value)}
+                placeholder="Task UUID"
+                className="flex-1 min-w-0 border-[3px] border-black dark:border-zinc-700 px-3 py-2 text-sm font-mono focus:outline-none focus:bg-brutalist-yellow focus:text-black dark:bg-zinc-900 dark:text-zinc-100"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const text = await navigator.clipboard.readText()
+                    handleTaskIdChange(text.trim())
+                  } catch { /* clipboard permission denied */ }
+                }}
+                className="btn-brutal shrink-0 border-[3px] border-black dark:border-zinc-600 bg-white dark:bg-zinc-900 dark:text-zinc-100 px-3 py-2 text-xs font-bold uppercase tracking-widest"
+              >
+                Paste
+              </button>
+            </div>
           </div>
 
           {/* Notes + repeat toggle */}

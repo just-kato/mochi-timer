@@ -106,25 +106,35 @@ export function useTimer(initialSession: LocalSession | null = null) {
     const duration = Math.max(0, Math.floor((effectiveEndTime.getTime() - state.startTime.getTime()) / 1000))
 
     if (online) {
+      // 30-second timeout so a hung request can't leave buttons disabled forever
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 30_000)
       try {
         const res = await fetch(`/api/sessions/${state.sessionId}/stop`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store', // bypass browser + service-worker cache (prevents stale 304)
+          signal: controller.signal,
           body: JSON.stringify({
             endTime: effectiveEndTime.toISOString(),
             startTime: state.startTime.toISOString(),
           }),
         })
+        clearTimeout(timeout)
         if (!res.ok) {
-          const data = await res.json().catch(() => ({})) as { error?: string }
-          throw new Error(data.error ?? 'Failed to stop session')
+          // 409 means the server already stopped this session (e.g. previous attempt
+          // succeeded but the client got a bad/cached response back). Treat as success.
+          if (res.status !== 409) {
+            const data = await res.json().catch(() => ({})) as { error?: string }
+            throw new Error(data.error ?? 'Failed to stop session')
+          }
         }
       } catch (err) {
-        setState((s) => ({
-          ...s,
-          loading: false,
-          error: err instanceof Error ? err.message : 'Failed to stop session',
-        }))
+        clearTimeout(timeout)
+        const message = err instanceof Error && err.name === 'AbortError'
+          ? 'Stop timed out — tap again to retry'
+          : err instanceof Error ? err.message : 'Failed to stop session'
+        setState((s) => ({ ...s, loading: false, error: message }))
         return
       }
     } else {

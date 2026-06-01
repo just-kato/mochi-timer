@@ -47,7 +47,7 @@ export default async function TimerPage() {
         </ErrorBoundary>
 
         <section className="mt-12">
-          <TodaySessions initialSessions={todaySessions} timezone={timezone} />
+          <TodaySessions initialSessions={todaySessions} timezone={timezone} hourlyRate={dbUser?.hourlyRate ?? 0} />
         </section>
       </div>
     </>

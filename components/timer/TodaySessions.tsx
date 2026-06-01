@@ -10,6 +10,7 @@ import { AddSessionModal } from './AddSessionModal'
 interface TodaySessionsProps {
   initialSessions: Session[]
   timezone?: string
+  hourlyRate?: number
 }
 
 function getTodayInTz(timezone: string): string {
@@ -30,7 +31,7 @@ function shiftDate(dateStr: string, n: number): string {
   return new Intl.DateTimeFormat('en-CA').format(date)
 }
 
-export function TodaySessions({ initialSessions, timezone = 'America/New_York' }: TodaySessionsProps) {
+export function TodaySessions({ initialSessions, timezone = 'America/New_York', hourlyRate = 0 }: TodaySessionsProps) {
   const router = useRouter()
   const todayInTz = getTodayInTz(timezone)
   const [selectedDate, setSelectedDate] = useState(todayInTz)
@@ -44,6 +45,9 @@ export function TodaySessions({ initialSessions, timezone = 'America/New_York' }
   const sorted = [...sessions].sort(
     (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
   )
+
+  const totalSeconds = sessions.reduce((sum, s) => sum + (s.duration ?? 0), 0)
+  const estimatedEarnings = hourlyRate > 0 ? (totalSeconds / 3600) * hourlyRate : null
 
   // Sync sessions when server pushes new data (e.g. after router.refresh() following stop/delete).
   // React's recommended pattern: update state during render rather than in an effect.
@@ -111,23 +115,33 @@ export function TodaySessions({ initialSessions, timezone = 'America/New_York' }
 
   return (
     <>
-      <div className="flex items-center gap-3 mb-4 pb-3 border-b-[3px] border-black dark:border-zinc-700">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          aria-label="Previous day"
-          className="btn-brutal w-7 h-7 flex items-center justify-center border-[3px] border-black dark:border-zinc-600 bg-white dark:bg-zinc-900 text-xs font-bold dark:text-zinc-100 shrink-0"
-        >←</button>
-        <h2 className="flex-1 text-center text-xs font-bold uppercase tracking-widest dark:text-zinc-100">
-          {formatDayLabel(selectedDate)}
-        </h2>
-        <button
-          type="button"
-          onClick={() => navigate(1)}
-          disabled={isToday}
-          aria-label="Next day"
-          className="btn-brutal w-7 h-7 flex items-center justify-center border-[3px] border-black dark:border-zinc-600 bg-white dark:bg-zinc-900 text-xs font-bold dark:text-zinc-100 disabled:opacity-30 shrink-0"
-        >→</button>
+      <div className="mb-4 pb-3 border-b-[3px] border-black dark:border-zinc-700">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            aria-label="Previous day"
+            className="btn-brutal w-7 h-7 flex items-center justify-center border-[3px] border-black dark:border-zinc-600 bg-white dark:bg-zinc-900 text-xs font-bold dark:text-zinc-100 shrink-0"
+          >←</button>
+          <h2 className="flex-1 text-center text-xs font-bold uppercase tracking-widest dark:text-zinc-100">
+            {formatDayLabel(selectedDate)}
+          </h2>
+          <button
+            type="button"
+            onClick={() => navigate(1)}
+            disabled={isToday}
+            aria-label="Next day"
+            className="btn-brutal w-7 h-7 flex items-center justify-center border-[3px] border-black dark:border-zinc-600 bg-white dark:bg-zinc-900 text-xs font-bold dark:text-zinc-100 disabled:opacity-30 shrink-0"
+          >→</button>
+        </div>
+        {estimatedEarnings !== null && sessions.length > 0 && (
+          <p className="text-center text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mt-1.5">
+            Est. earned&nbsp;&nbsp;
+            <span className="text-black dark:text-zinc-100">
+              ${estimatedEarnings.toFixed(2)}
+            </span>
+          </p>
+        )}
       </div>
 
       {loading && (

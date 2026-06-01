@@ -14,8 +14,9 @@ export async function PATCH(
   const { id } = await params
 
   let endTime: Date
+  let startTime: Date | undefined
   try {
-    const body = await request.json() as { endTime?: unknown }
+    const body = await request.json() as { endTime?: unknown; startTime?: unknown }
     if (typeof body.endTime !== 'string') {
       return NextResponse.json({ error: 'endTime is required' }, { status: 400 })
     }
@@ -23,12 +24,16 @@ export async function PATCH(
     if (isNaN(endTime.getTime())) {
       return NextResponse.json({ error: 'Invalid endTime' }, { status: 400 })
     }
+    if (typeof body.startTime === 'string') {
+      const parsed = new Date(body.startTime)
+      if (!isNaN(parsed.getTime())) startTime = parsed
+    }
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
   try {
-    const session = await stopSession(id, user.id, endTime)
+    const session = await stopSession(id, user.id, endTime, startTime)
     logger.info('Session stopped', { id, userId: user.id })
     return NextResponse.json({ session })
   } catch (err) {
@@ -38,9 +43,6 @@ export async function PATCH(
     }
     if (message === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-    if (message === 'Session not found') {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
     logger.error('Session stop failed', { id, error: message })
     return NextResponse.json({ error: 'Failed to stop session' }, { status: 500 })

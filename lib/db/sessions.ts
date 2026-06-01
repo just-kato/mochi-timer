@@ -93,21 +93,36 @@ export async function createSession(
 export async function stopSession(
   id: string,
   userId: string,
-  endTime: Date
+  endTime: Date,
+  startTime?: Date
 ): Promise<Session> {
   const supabase = createServiceClient()
-  const { data: session, error: fetchError } = await supabase
+  let { data: session, error: fetchError } = await supabase
     .from('Session')
     .select()
     .eq('id', id)
     .maybeSingle()
   if (fetchError) throw new Error(fetchError.message)
-  if (!session) throw new Error('Session not found')
+
+  // Session missing on server — happens when start() failed silently (e.g. auth hiccup).
+  // Recreate it from the client-supplied startTime so the stop can succeed.
+  if (!session) {
+    if (!startTime) throw new Error('Session not found')
+    const { data: created, error: createError } = await supabase
+      .from('Session')
+      .insert({ id, userId, startTime: startTime.toISOString(), synced: true })
+      .select()
+      .single()
+    if (createError) throw new Error(createError.message)
+    session = created
+  }
+
   const row = session as SupabaseSessionRow
   if (row.userId !== userId) throw new Error('Forbidden')
   if (row.endTime !== null) throw new Error('Session already stopped')
 
-  const duration = durationSeconds(toUTCDate(row.startTime), endTime)
+  const effectiveStart = startTime ?? toUTCDate(row.startTime)
+  const duration = durationSeconds(effectiveStart, endTime)
   const { data: updated, error: updateError } = await supabase
     .from('Session')
     .update({ endTime: endTime.toISOString(), duration, synced: true })

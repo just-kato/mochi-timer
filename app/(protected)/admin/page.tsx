@@ -12,15 +12,17 @@ export default async function AdminPage() {
   const serviceClient = createServiceClient()
   const [users, { data: authData }] = await Promise.all([
     getAllUsers(),
-    serviceClient.auth.admin.listUsers(),
+    // perPage=1000 avoids the default 50-user pagination cutoff
+    serviceClient.auth.admin.listUsers({ perPage: 1000 }),
   ])
 
   const userTableIds = new Set(users.map((u) => u.id))
 
-  // Pending = invited but email not confirmed yet
+  // Pending = any auth user who hasn't confirmed their email yet
+  // (invited_at may be null for users created directly, so fall back to created_at)
   const pendingInvites: PendingInvite[] = (authData?.users ?? [])
-    .filter((u) => u.invited_at && !u.email_confirmed_at)
-    .map((u) => ({ id: u.id, email: u.email ?? '', invitedAt: u.invited_at! }))
+    .filter((u) => !u.email_confirmed_at)
+    .map((u) => ({ id: u.id, email: u.email ?? '', invitedAt: u.invited_at ?? u.created_at! }))
 
   // Confirmed in auth but missing a User row — create rows now so they appear
   const missingUsers = (authData?.users ?? []).filter(

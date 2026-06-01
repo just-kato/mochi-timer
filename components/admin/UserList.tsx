@@ -51,7 +51,7 @@ export function UserList({ users, pendingInvites = [], currentUserId }: UserList
 
       {visiblePending.length > 0 && (
         <div>
-          <SectionLabel>Pending ({visiblePending.length})</SectionLabel>
+          <SectionLabel>Pending Invites ({visiblePending.length})</SectionLabel>
           {visiblePending.map((invite, i) => (
             <div
               key={invite.id}
@@ -75,7 +75,7 @@ export function UserList({ users, pendingInvites = [], currentUserId }: UserList
                 disabled={revoking === invite.id}
                 className="flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-widest border-[3px] border-black bg-brutalist-red text-black btn-brutal shadow-brutal-sm shrink-0"
               >
-                {revoking === invite.id ? <LoadingSpinner size="sm" /> : 'REVOKE'}
+                {revoking === invite.id ? <LoadingSpinner size="sm" /> : 'CANCEL INVITE'}
               </button>
             </div>
           ))}
@@ -83,7 +83,7 @@ export function UserList({ users, pendingInvites = [], currentUserId }: UserList
       )}
 
       <div>
-        <SectionLabel>Active ({visibleUsers.length})</SectionLabel>
+        <SectionLabel>Active Users ({visibleUsers.length})</SectionLabel>
         {visibleUsers.map((u, i) => (
           <div
             key={u.id}

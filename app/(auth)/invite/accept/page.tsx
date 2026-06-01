@@ -38,6 +38,8 @@ export default function InviteAcceptPage() {
       const supabase = createClient()
       const { error: updateError } = await supabase.auth.updateUser({ password })
       if (updateError) throw new Error(updateError.message)
+      // Explicitly sync the User row now — don't rely on the layout running first
+      await fetch('/api/users/sync', { method: 'POST' }).catch(() => {})
       router.push('/timer')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to set password')

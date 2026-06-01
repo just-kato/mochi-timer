@@ -103,6 +103,10 @@ export function TodaySessions({ initialSessions, timezone = 'America/New_York', 
     setEditingSession(null)
   }
 
+  function handleUpdated(updated: Session) {
+    setSessions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+  }
+
   function handleDeleted(id: string) {
     setSessions((prev) => prev.filter((s) => s.id !== id))
     if (isToday) router.refresh()
@@ -185,6 +189,7 @@ export function TodaySessions({ initialSessions, timezone = 'America/New_York', 
                 session={session}
                 onEdit={setEditingSession}
                 onDeleted={handleDeleted}
+                onUpdated={handleUpdated}
               />
             ))}
           </ul>

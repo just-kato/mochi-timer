@@ -24,6 +24,7 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
   const [repeatNote, setRepeatNote] = useState(false)
   const [savedNote, setSavedNote]   = useState('')
   const [hiddenNotes, setHiddenNotes] = useState<Set<string>>(new Set())
+  const [stopping, setStopping]     = useState(false)
 
   // Load persisted values after mount (avoids SSR mismatch)
   useEffect(() => {
@@ -83,6 +84,7 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
   }
 
   async function handleStop() {
+    setStopping(true)
     const finalNotes  = notes.trim()
     const finalTaskId = taskId.trim()
 
@@ -100,14 +102,17 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
 
     // Repeat mode: restore note for the next session; otherwise clear
     setNotes(repeatNote ? (localStorage.getItem(LS_LAST_NOTE) ?? '') : '')
+    setStopping(false)
     if (online) router.refresh()
   }
+
+  const displayRunning = running && !stopping
 
   return (
     <div className="flex flex-col items-center gap-8">
       <div
         className={`w-full border-[3px] flex flex-col items-center justify-center py-10 px-6 shadow-brutal transition-colors ${
-          running && !paused
+          displayRunning && !paused
             ? 'border-black dark:border-black bg-brutalist-yellow'
             : 'border-black dark:border-zinc-700 bg-white dark:bg-zinc-900'
         }`}
@@ -116,11 +121,11 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
         aria-label={`Elapsed time: ${elapsed}`}
       >
         <span className={`text-7xl font-mono-brutal font-bold tabular-nums tracking-tight ${
-          running && !paused ? 'text-black' : 'dark:text-zinc-100'
+          displayRunning && !paused ? 'text-black' : 'dark:text-zinc-100'
         }`}>
-          {elapsed}
+          {displayRunning ? elapsed : '00:00:00'}
         </span>
-        {paused && (
+        {paused && !stopping && (
           <span className="mt-3 text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 border-2 border-zinc-300 dark:border-zinc-600 px-3 py-1">
             PAUSED
           </span>
@@ -138,7 +143,7 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
         onResume={resume}
       />
 
-      {running && (
+      {displayRunning && (
         <div className="w-full space-y-3">
           {/* Task ID — always required, persisted across sessions */}
           <div>

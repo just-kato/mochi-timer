@@ -45,9 +45,6 @@ jwt_expiry = 3600
 # This must also be disabled in the Supabase dashboard for production
 enable_signup = false
 
-# Allow email confirmations (required for invite flow)
-enable_confirmations = true
-
 [auth.email]
 # Enable email provider (magic link + invite)
 enable_signup = false

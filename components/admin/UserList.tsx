@@ -21,8 +21,12 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export function UserList({ users, pendingInvites = [], currentUserId }: UserListProps) {
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [changingRole, setChangingRole] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set())
+  const [roles, setRoles] = useState<Record<string, string>>(
+    Object.fromEntries(users.map((u) => [u.id, u.role]))
+  )
 
   async function handleRevoke(id: string, email: string) {
     if (!confirm(`Revoke access for ${email}? This cannot be undone.`)) return
@@ -35,6 +39,23 @@ export function UserList({ users, pendingInvites = [], currentUserId }: UserList
     } else {
       const data = await res.json() as { error?: string }
       setError(data.error ?? 'Failed to revoke access')
+    }
+  }
+
+  async function handleRoleChange(id: string, newRole: 'admin' | 'user') {
+    setChangingRole(id)
+    setError(null)
+    const res = await fetch(`/api/admin/users/${id}/role`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: newRole }),
+    })
+    setChangingRole(null)
+    if (res.ok) {
+      setRoles((prev) => ({ ...prev, [id]: newRole }))
+    } else {
+      const data = await res.json() as { error?: string }
+      setError(data.error ?? 'Failed to change role')
     }
   }
 
@@ -84,30 +105,49 @@ export function UserList({ users, pendingInvites = [], currentUserId }: UserList
 
       <div>
         <SectionLabel>Active Users ({visibleUsers.length})</SectionLabel>
-        {visibleUsers.map((u, i) => (
-          <div
-            key={u.id}
-            className={`py-4 px-4 flex items-center justify-between gap-4 ${
-              i < visibleUsers.length - 1 ? 'border-b-[3px] border-black' : ''
-            }`}
-          >
-            <div>
-              <p className="text-sm font-bold">{u.email}</p>
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mt-1">
-                {u.role} · {new Date(u.createdAt).toLocaleDateString()}
-              </p>
+        {visibleUsers.map((u, i) => {
+          const currentRole = roles[u.id] ?? u.role
+          const isSelf = u.id === currentUserId
+          return (
+            <div
+              key={u.id}
+              className={`py-4 px-4 flex items-center justify-between gap-4 ${
+                i < visibleUsers.length - 1 ? 'border-b-[3px] border-black' : ''
+              }`}
+            >
+              <div>
+                <p className="text-sm font-bold">{u.email}</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mt-1">
+                  {currentRole} · {new Date(u.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+
+              {!isSelf && (
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Role toggle */}
+                  <button
+                    onClick={() => handleRoleChange(u.id, currentRole === 'admin' ? 'user' : 'admin')}
+                    disabled={changingRole === u.id}
+                    className="flex items-center gap-2 px-3 py-2 text-xs font-bold uppercase tracking-widest border-[3px] border-black bg-white text-black btn-brutal shadow-brutal-sm"
+                    title={currentRole === 'admin' ? 'Demote to user' : 'Promote to admin'}
+                  >
+                    {changingRole === u.id
+                      ? <LoadingSpinner size="sm" />
+                      : currentRole === 'admin' ? 'MAKE USER' : 'MAKE ADMIN'}
+                  </button>
+
+                  <button
+                    onClick={() => handleRevoke(u.id, u.email)}
+                    disabled={revoking === u.id}
+                    className="flex items-center gap-2 px-3 py-2 text-xs font-bold uppercase tracking-widest border-[3px] border-black bg-brutalist-red text-black btn-brutal shadow-brutal-sm"
+                  >
+                    {revoking === u.id ? <LoadingSpinner size="sm" /> : 'REVOKE'}
+                  </button>
+                </div>
+              )}
             </div>
-            {u.id !== currentUserId && (
-              <button
-                onClick={() => handleRevoke(u.id, u.email)}
-                disabled={revoking === u.id}
-                className="flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-widest border-[3px] border-black bg-brutalist-red text-black btn-brutal shadow-brutal-sm shrink-0"
-              >
-                {revoking === u.id ? <LoadingSpinner size="sm" /> : 'REVOKE'}
-              </button>
-            )}
-          </div>
-        ))}
+          )
+        })}
         {visibleUsers.length === 0 && (
           <div className="px-4 py-8 text-center">
             <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">No active users</p>

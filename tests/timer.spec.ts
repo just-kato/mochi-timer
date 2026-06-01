@@ -35,6 +35,8 @@ test.describe('Timer', () => {
     const initial = await status.textContent()
     await expect(status).not.toHaveText(initial ?? '')
 
+    // Task ID is required before Stop is enabled
+    await page.locator('#task-id').fill('00000000-0000-0000-0000-000000000001')
     // Clean up — stop the timer so subsequent tests start from a clean state
     await page.getByRole('button', { name: 'Stop timer' }).click()
     await expect(page.getByRole('button', { name: 'Start timer' })).toBeVisible()
@@ -44,6 +46,8 @@ test.describe('Timer', () => {
     await page.getByRole('button', { name: 'Start timer' }).click()
     // Wait until at least 1 second has elapsed so duration > 0
     await expect(page.getByRole('status')).not.toHaveText('00:00:00', { timeout: 5000 })
+    // Task ID is required before Stop is enabled
+    await page.locator('#task-id').fill('00000000-0000-0000-0000-000000000001')
     await page.getByRole('button', { name: 'Stop timer' }).click()
     await expect(page.getByRole('button', { name: 'Start timer' })).toBeVisible()
 
@@ -98,6 +102,8 @@ test.describe('Timer', () => {
     // Remove the block so the stop PATCH can reach the server
     await page.unroute('**/api/sessions')
 
+    // Task ID is required before Stop is enabled
+    await page.locator('#task-id').fill('00000000-0000-0000-0000-000000000001')
     // Stop — the self-healing INSERT path should fire on the server
     await page.getByRole('button', { name: 'Stop timer' }).click()
 

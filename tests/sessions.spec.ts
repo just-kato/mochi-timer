@@ -187,9 +187,12 @@ test.describe('Sessions — edit, delete, history', () => {
       const dy = String(d.getDate()).padStart(2, '0')
       const h = String(d.getHours()).padStart(2, '0')
       const mi = String(d.getMinutes()).padStart(2, '0')
-      return `${y}-${mo}-${dy}T${h}:${mi}`
+      const s = String(d.getSeconds()).padStart(2, '0')
+      return `${y}-${mo}-${dy}T${h}:${mi}:${s}`
     }
     await page.locator('#edit-start').fill(fmt(newStart))
+    // Task ID is required before Save is enabled
+    await page.locator('#edit-task-id').fill('00000000-0000-0000-0000-000000000001')
     await page.getByRole('dialog', { name: 'Edit session' }).getByRole('button', { name: 'Save' }).click()
 
     // Modal should close and duration should update to 1:00:00

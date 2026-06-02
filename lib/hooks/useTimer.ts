@@ -167,7 +167,7 @@ export function useTimer(initialSession: LocalSession | null = null) {
     if (!state.sessionId) return
     setState((s) => ({ ...s, loading: true, error: null }))
     if (online) {
-      await fetch(`/api/sessions/${state.sessionId}`, { method: 'DELETE' }).catch(() => {})
+      await fetch(`/api/sessions/${state.sessionId}?abandon=true`, { method: 'DELETE' }).catch(() => {})
     }
     await clearActiveSession()
     totalPausedMsRef.current = 0

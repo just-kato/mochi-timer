@@ -24,7 +24,8 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
   const [repeatNote, setRepeatNote] = useState(false)
   const [savedNote, setSavedNote]   = useState('')
   const [hiddenNotes, setHiddenNotes] = useState<Set<string>>(new Set())
-  const [stopping, setStopping]     = useState(false)
+  const [stopping, setStopping]       = useState(false)
+  const [confirmAbandon, setConfirmAbandon] = useState(false)
 
   // Load persisted values after mount (avoids SSR mismatch)
   useEffect(() => {
@@ -43,7 +44,7 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
 
   const router = useRouter()
   const online = useOnlineStatus()
-  const { running, paused, elapsed, loading, error, start, stop, pause, resume } = useTimer(initialSession)
+  const { running, paused, elapsed, loading, error, start, stop, pause, resume, abandon } = useTimer(initialSession)
 
   function hideNote(note: string) {
     setHiddenNotes((prev) => {
@@ -106,10 +107,58 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
     if (online) router.refresh()
   }
 
+  async function handleAbandon() {
+    await abandon()
+    setTaskId('')
+    setNotes(repeatNote ? (localStorage.getItem(LS_LAST_NOTE) ?? '') : '')
+    localStorage.removeItem(LS_TASK_ID)
+    setConfirmAbandon(false)
+    if (online) router.refresh()
+  }
+
   const displayRunning = running && !stopping
 
   return (
     <div className="flex flex-col items-center gap-8">
+      {/* Abandon row — sits flush right above the timer display */}
+      <div className="w-full flex justify-end items-center gap-2 -mb-4">
+        {confirmAbandon ? (
+          <>
+            <span className="text-xs font-bold uppercase tracking-widest text-brutalist-red">Abandon?</span>
+            <button
+              type="button"
+              onClick={() => void handleAbandon()}
+              disabled={loading}
+              title="Yes, discard this session"
+              className="btn-brutal min-h-0! min-w-0! h-7 px-2 text-xs font-bold uppercase tracking-widest border-[3px] border-black bg-black text-brutalist-yellow disabled:opacity-50"
+            >
+              {loading ? '…' : 'Confirm'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmAbandon(false)}
+              title="Keep the timer running"
+              className="text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-black dark:hover:text-zinc-100 underline"
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmAbandon(true)}
+            disabled={!running || loading}
+            title={running ? 'Abandon session — discards time without saving' : 'No active session'}
+            aria-label="Abandon session"
+            className="text-zinc-300 dark:text-zinc-600 hover:text-brutalist-red dark:hover:text-brutalist-red disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+            </svg>
+          </button>
+        )}
+      </div>
       <div
         className={`w-full border-[3px] flex flex-col items-center justify-center py-10 px-6 shadow-brutal transition-colors ${
           displayRunning && !paused

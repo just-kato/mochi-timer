@@ -163,5 +163,17 @@ export function useTimer(initialSession: LocalSession | null = null) {
     setState({ running: false, paused: false, sessionId: null, startTime: null, elapsed: '00:00:00', loading: false, error: null })
   }, [state.sessionId, state.startTime, online])
 
-  return { ...state, start, stop, pause, resume }
+  const abandon = useCallback(async () => {
+    if (!state.sessionId) return
+    setState((s) => ({ ...s, loading: true, error: null }))
+    if (online) {
+      await fetch(`/api/sessions/${state.sessionId}`, { method: 'DELETE' }).catch(() => {})
+    }
+    await clearActiveSession()
+    totalPausedMsRef.current = 0
+    pausedAtRef.current = null
+    setState({ running: false, paused: false, sessionId: null, startTime: null, elapsed: '00:00:00', loading: false, error: null })
+  }, [state.sessionId, online])
+
+  return { ...state, start, stop, pause, resume, abandon }
 }

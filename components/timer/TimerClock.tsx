@@ -77,6 +77,7 @@ export function TimerClock({ timezone }: TimerClockProps) {
         type="button"
         onClick={handleSync}
         aria-label="Sync sessions"
+        title="Refresh session data"
         className="text-zinc-400 hover:text-black dark:hover:text-zinc-100 transition-colors"
       >
         <svg key={spinKey} xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={spinKey > 0 ? 'spin-once' : ''}>

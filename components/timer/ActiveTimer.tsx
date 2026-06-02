@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { TimerButton } from './TimerButton'
 import { useTimer } from '@/lib/hooks/useTimer'
@@ -16,16 +16,17 @@ const LS_HIDDEN_NOTES = 'mochi-hidden-notes'
 interface ActiveTimerProps {
   initialSession: LocalSession | null
   recentNotes?: string[]
+  onRunningChange?: (running: boolean) => void
+  abandonRef?: React.MutableRefObject<(() => Promise<void>) | null>
 }
 
-export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerProps) {
-  const [taskId, setTaskId]         = useState('')
-  const [notes, setNotes]           = useState('')
-  const [repeatNote, setRepeatNote] = useState(false)
-  const [savedNote, setSavedNote]   = useState('')
+export function ActiveTimer({ initialSession, recentNotes = [], onRunningChange, abandonRef }: ActiveTimerProps) {
+  const [taskId, setTaskId]           = useState('')
+  const [notes, setNotes]             = useState('')
+  const [repeatNote, setRepeatNote]   = useState(false)
+  const [savedNote, setSavedNote]     = useState('')
   const [hiddenNotes, setHiddenNotes] = useState<Set<string>>(new Set())
   const [stopping, setStopping]       = useState(false)
-  const [confirmAbandon, setConfirmAbandon] = useState(false)
 
   // Load persisted values after mount (avoids SSR mismatch)
   useEffect(() => {
@@ -46,6 +47,24 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
   const online = useOnlineStatus()
   const { running, paused, elapsed, loading, error, start, stop, pause, resume, abandon } = useTimer(initialSession)
 
+  // Notify parent when running state changes
+  useEffect(() => {
+    onRunningChange?.(running)
+  }, [running, onRunningChange])
+
+  // Expose abandon + cleanup to parent via ref
+  const abandonWithCleanup = useCallback(async () => {
+    await abandon()
+    setTaskId('')
+    setNotes(repeatNote ? (localStorage.getItem(LS_LAST_NOTE) ?? '') : '')
+    localStorage.removeItem(LS_TASK_ID)
+    if (online) router.refresh()
+  }, [abandon, repeatNote, online, router])
+
+  useEffect(() => {
+    if (abandonRef) abandonRef.current = abandonWithCleanup
+  }, [abandonRef, abandonWithCleanup])
+
   function hideNote(note: string) {
     setHiddenNotes((prev) => {
       const next = new Set(prev)
@@ -63,20 +82,17 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
 
   function toggleRepeat() {
     if (!repeatNote) {
-      // Turning ON — need something to repeat
       const noteToRepeat = notes.trim() || savedNote
       if (!noteToRepeat) {
         toast({ message: 'Type a note first before enabling repeat', type: 'error' })
         return
       }
-      // If the user has typed a fresh note, promote it to the saved note
       if (notes.trim()) {
         localStorage.setItem(LS_LAST_NOTE, notes.trim())
         setSavedNote(notes.trim())
       }
       setNotes(noteToRepeat)
     } else {
-      // Turning OFF — clear the locked note
       setNotes('')
     }
     const next = !repeatNote
@@ -97,22 +113,10 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
 
     await stop(finalNotes, finalTaskId)
 
-    // Task ID never repeats — clear it after every stop
     setTaskId('')
     localStorage.removeItem(LS_TASK_ID)
-
-    // Repeat mode: restore note for the next session; otherwise clear
     setNotes(repeatNote ? (localStorage.getItem(LS_LAST_NOTE) ?? '') : '')
     setStopping(false)
-    if (online) router.refresh()
-  }
-
-  async function handleAbandon() {
-    await abandon()
-    setTaskId('')
-    setNotes(repeatNote ? (localStorage.getItem(LS_LAST_NOTE) ?? '') : '')
-    localStorage.removeItem(LS_TASK_ID)
-    setConfirmAbandon(false)
     if (online) router.refresh()
   }
 
@@ -120,45 +124,6 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
 
   return (
     <div className="flex flex-col items-center gap-8">
-      {/* Abandon row — sits flush right above the timer display */}
-      <div className="w-full flex justify-end items-center gap-2 -mb-4">
-        {confirmAbandon ? (
-          <>
-            <span className="text-xs font-bold uppercase tracking-widest text-brutalist-red">Abandon?</span>
-            <button
-              type="button"
-              onClick={() => void handleAbandon()}
-              disabled={loading}
-              title="Yes, discard this session"
-              className="btn-brutal min-h-0! min-w-0! h-7 px-2 text-xs font-bold uppercase tracking-widest border-[3px] border-black bg-black text-brutalist-yellow disabled:opacity-50"
-            >
-              {loading ? '…' : 'Confirm'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmAbandon(false)}
-              title="Keep the timer running"
-              className="text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-black dark:hover:text-zinc-100 underline"
-            >
-              Cancel
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setConfirmAbandon(true)}
-            disabled={!running || loading}
-            title={running ? 'Abandon session — discards time without saving' : 'No active session'}
-            aria-label="Abandon session"
-            className="text-zinc-300 dark:text-zinc-600 hover:text-brutalist-red dark:hover:text-brutalist-red disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-            </svg>
-          </button>
-        )}
-      </div>
       <div
         className={`w-full border-[3px] flex flex-col items-center justify-center py-10 px-6 shadow-brutal transition-colors ${
           displayRunning && !paused
@@ -194,7 +159,6 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
 
       {displayRunning && (
         <div className="w-full space-y-3">
-          {/* Task ID — always required, persisted across sessions */}
           <div>
             <label htmlFor="task-id" className="block text-xs font-bold uppercase tracking-widest mb-2 dark:text-zinc-100">
               TASK ID
@@ -223,7 +187,6 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
             </div>
           </div>
 
-          {/* Notes + repeat toggle */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label
@@ -267,7 +230,6 @@ export function ActiveTimer({ initialSession, recentNotes = [] }: ActiveTimerPro
             />
           </div>
 
-          {/* Recent note suggestions — hidden when repeat mode is on */}
           {!repeatNote && recentNotes.filter((n) => !hiddenNotes.has(n)).length > 0 && (
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">

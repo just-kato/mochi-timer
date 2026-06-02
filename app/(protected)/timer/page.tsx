@@ -1,9 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { getActiveSession, getSessionsByDayInTz, getRecentNoteSuggestions } from '@/lib/db/sessions'
 import { getUserById } from '@/lib/db/users'
-import { ActiveTimer } from '@/components/timer/ActiveTimer'
+import { TimerSection } from '@/components/timer/TimerSection'
 import { TodaySessions } from '@/components/timer/TodaySessions'
-import { TimerClock } from '@/components/timer/TimerClock'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { TimerCrashFallback } from '@/components/timer/TimerCrashFallback'
 import { OfflineIndicator } from '@/components/shared/OfflineIndicator'
@@ -40,10 +39,8 @@ export default async function TimerPage() {
       <OfflineIndicator />
       <SyncIndicator />
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <TimerClock timezone={timezone} />
-
         <ErrorBoundary fallback={<TimerCrashFallback />}>
-          <ActiveTimer initialSession={initialSession} recentNotes={recentNotes} />
+          <TimerSection timezone={timezone} initialSession={initialSession} recentNotes={recentNotes} />
         </ErrorBoundary>
 
         <section className="mt-12">

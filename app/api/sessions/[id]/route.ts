@@ -64,16 +64,17 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
   }
 }
 
-export async function DELETE(_request: Request, { params }: Params): Promise<NextResponse> {
+export async function DELETE(request: Request, { params }: Params): Promise<NextResponse> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
+  const abandon = new URL(request.url).searchParams.get('abandon') === 'true'
 
   try {
-    await deleteSession(id, user.id)
-    logger.info('Session deleted', { id, userId: user.id })
+    await deleteSession(id, user.id, { allowActive: abandon })
+    logger.info(abandon ? 'Session abandoned' : 'Session deleted', { id, userId: user.id })
     return NextResponse.json({})
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'

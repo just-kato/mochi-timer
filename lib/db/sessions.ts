@@ -249,7 +249,7 @@ export async function updateSession(
   return mapSession(updated as SupabaseSessionRow)
 }
 
-export async function deleteSession(id: string, userId: string): Promise<void> {
+export async function deleteSession(id: string, userId: string, { allowActive = false } = {}): Promise<void> {
   const supabase = createServiceClient()
   const { data: session, error: fetchError } = await supabase
     .from('Session')
@@ -260,7 +260,7 @@ export async function deleteSession(id: string, userId: string): Promise<void> {
   if (!session) throw new Error('Session not found')
   const row = session as SupabaseSessionRow
   if (row.userId !== userId) throw new Error('Forbidden')
-  if (row.endTime === null) throw new Error('Cannot delete active session')
+  if (row.endTime === null && !allowActive) throw new Error('Cannot delete active session')
 
   const { error: deleteError } = await supabase
     .from('Session')

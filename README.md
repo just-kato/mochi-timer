@@ -189,24 +189,3 @@ npx playwright test --ui         # open Playwright UI
 ```
 
 Tests live in `/tests`. Each feature has its own spec file. Tests use a dedicated Supabase test environment — never run against production.
-
----
-
-## Design System
-
-Flat neo-brutalist aesthetic:
-- Heavy black borders (`border-[3px] border-black`)
-- Brutalist yellow accent (`#FFFF00`) for active states and CTAs
-- Zero border radius across all elements
-- Space Grotesk (UI text) + Space Mono (numbers/code)
-- Offset box shadows: `shadow-brutal`, `shadow-brutal-sm`, `shadow-brutal-lg`
-- Dark mode supported — toggle in NavBar, preference saved to `localStorage`
-- App background: cream (`#FEFEF2`) in light mode
-
----
-
-## Admin Setup
-
-1. In the Supabase dashboard, disable public signups under **Authentication → Settings**
-2. Create the first admin user manually in Supabase Auth, then set `user_metadata.role = "admin"` via the Supabase dashboard or service role API
-3. The admin can then invite additional users from the **Profile → Admin** tab in the app
